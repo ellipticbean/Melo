@@ -19,7 +19,9 @@ import {
     getLastFmUser as fetchLastFmUser,
     getRecentTrack,
     getRecentTracks,
+    getTopArtists,
     getTrackInfo,
+    type TopArtistPeriod,
 } from "./lastfm.js";
 
 function requireEnv(name: string): string {
@@ -32,6 +34,31 @@ function requireEnv(name: string): string {
     }
 
     return value;
+}
+
+function getPeriodLabel(
+    period: TopArtistPeriod
+): string {
+    switch (period) {
+        case "7day":
+            return "Last 7 days";
+
+        case "1month":
+            return "Last month";
+
+        case "3month":
+            return "Last 3 months";
+
+        case "6month":
+            return "Last 6 months";
+
+        case "12month":
+            return "Last 12 months";
+
+        case "overall":
+        default:
+            return "Overall";
+    }
 }
 
 const token =
@@ -95,6 +122,57 @@ const commands = [
                 )
                 .setMinValue(1)
                 .setMaxValue(10)
+                .setRequired(false)
+        )
+        .toJSON(),
+
+    new SlashCommandBuilder()
+        .setName("topartists")
+        .setDescription(
+            "Show your top Last.fm artists."
+        )
+        .addStringOption((option) =>
+            option
+                .setName("period")
+                .setDescription(
+                    "Time period for the chart"
+                )
+                .addChoices(
+                    {
+                        name: "7 days",
+                        value: "7day",
+                    },
+                    {
+                        name: "1 month",
+                        value: "1month",
+                    },
+                    {
+                        name: "3 months",
+                        value: "3month",
+                    },
+                    {
+                        name: "6 months",
+                        value: "6month",
+                    },
+                    {
+                        name: "12 months",
+                        value: "12month",
+                    },
+                    {
+                        name: "Overall",
+                        value: "overall",
+                    }
+                )
+                .setRequired(false)
+        )
+        .addIntegerOption((option) =>
+            option
+                .setName("count")
+                .setDescription(
+                    "Number of artists to show"
+                )
+                .setMinValue(1)
+                .setMaxValue(15)
                 .setRequired(false)
         )
         .toJSON(),
@@ -508,6 +586,111 @@ client.on(
                         firstArtwork
                     );
                 }
+
+                await interaction.editReply({
+                    embeds: [embed],
+                });
+
+                return;
+            }
+
+            // =================================================
+            // /topartists
+            // =================================================
+
+            if (
+                interaction.commandName ===
+                "topartists"
+            ) {
+                const username =
+                    getSavedLastFmUser(
+                        interaction.user.id
+                    );
+
+                if (!username) {
+                    await interaction.reply({
+                        content:
+                            "You haven't linked a Last.fm account yet. Use `/setuser username:` first.",
+                        ephemeral: true,
+                    });
+
+                    return;
+                }
+
+                const period =
+                    (
+                        interaction.options
+                            .getString(
+                                "period"
+                            ) ??
+                        "overall"
+                    ) as TopArtistPeriod;
+
+                const count =
+                    interaction.options
+                        .getInteger(
+                            "count"
+                        ) ?? 10;
+
+                await interaction.deferReply();
+
+                const artists =
+                    await getTopArtists(
+                        username,
+                        period,
+                        count
+                    );
+
+                if (artists.length === 0) {
+                    await interaction.editReply(
+                        `I couldn't find any top artists for **${username}** during that period.`
+                    );
+
+                    return;
+                }
+
+                const lines =
+                    artists.map(
+                        (
+                            artist,
+                            index
+                        ) => {
+                            const name =
+                                artist.url
+                                    ? `[${artist.name}](${artist.url})`
+                                    : artist.name;
+
+                            return (
+                                `**${index + 1}. ${name}**` +
+                                ` — ${artist.playcount.toLocaleString()} plays`
+                            );
+                        }
+                    );
+
+                const periodLabel =
+                    getPeriodLabel(
+                        period
+                    );
+
+                const embed =
+                    new EmbedBuilder()
+                        .setColor(0xd92323)
+                        .setAuthor({
+                            name:
+                                `${interaction.user.displayName}'s top artists`,
+                        })
+                        .setTitle(
+                            periodLabel
+                        )
+                        .setDescription(
+                            lines.join(
+                                "\n"
+                            )
+                        )
+                        .setFooter({
+                            text:
+                                `${username} on Last.fm`,
+                        });
 
                 await interaction.editReply({
                     embeds: [embed],
