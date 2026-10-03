@@ -99,6 +99,14 @@ export type TrackInfo = {
     listeners: number;
     globalPlaycount: number;
 };
+
+export type ArtistInfo = {
+    name: string;
+    url: string;
+    userPlaycount: number;
+    tags: string[];
+};
+
 export type TopArtistPeriod =
     | "overall"
     | "7day"
@@ -112,6 +120,7 @@ export type TopArtist = {
     playcount: number;
     url: string;
 };
+
 type RawRecentTrack = {
     name?: string;
 
@@ -178,19 +187,30 @@ function parseRecentTrack(
 
     const timestamp =
         track.date?.uts
-            ? Number(track.date.uts)
+            ? Number(
+                track.date.uts
+            )
             : null;
 
     return {
-        name: track.name,
+        name:
+            track.name,
+
         artist,
+
         album,
-        url: track.url ?? "",
+
+        url:
+            track.url ?? "",
+
         imageUrl:
-            image && image.length > 0
+            image &&
+                image.length > 0
                 ? image
                 : null,
+
         nowPlaying,
+
         timestamp,
     };
 }
@@ -217,8 +237,12 @@ export async function getLastFmUser(
     }
 
     return {
-        name: data.user.name,
-        url: data.user.url ?? "",
+        name:
+            data.user.name,
+
+        url:
+            data.user.url ?? "",
+
         playcount:
             data.user.playcount ?? "0",
     };
@@ -230,18 +254,26 @@ export async function getRecentTracks(
 ): Promise<RecentTrack[]> {
     const safeLimit =
         Math.min(
-            Math.max(limit, 1),
-            10
+            Math.max(
+                limit,
+                1
+            ),
+            15
         );
 
     const data =
         (await requestLastFm({
             method:
                 "user.getRecentTracks",
-            user: username,
+
+            user:
+                username,
+
             limit:
                 safeLimit.toString(),
-            extended: "1",
+
+            extended:
+                "1",
         })) as {
             recenttracks?: {
                 track?:
@@ -263,7 +295,9 @@ export async function getRecentTracks(
             : [rawTracks];
 
     return tracks
-        .map(parseRecentTrack)
+        .map(
+            parseRecentTrack
+        )
         .filter(
             (
                 track
@@ -291,11 +325,17 @@ export async function getTrackInfo(
 ): Promise<TrackInfo> {
     const data =
         (await requestLastFm({
-            method: "track.getInfo",
-            user: username,
+            method:
+                "track.getInfo",
+
+            username,
+
             artist,
+
             track,
-            autocorrect: "1",
+
+            autocorrect:
+                "1",
         })) as {
             track?: {
                 userplaycount?:
@@ -331,39 +371,144 @@ export async function getTrackInfo(
                     ?.playcount ?? 0
             ),
     };
-    
+}
+
+export async function getArtistInfo(
+    username: string,
+    artist: string
+): Promise<ArtistInfo> {
+    const data =
+        (await requestLastFm({
+            method:
+                "artist.getInfo",
+
+            username,
+
+            artist,
+
+            autocorrect:
+                "1",
+        })) as {
+            artist?: {
+                name?: string;
+
+                url?: string;
+
+                stats?: {
+                    listeners?:
+                        | string
+                        | number;
+
+                    playcount?:
+                        | string
+                        | number;
+
+                    userplaycount?:
+                        | string
+                        | number;
+                };
+
+                tags?: {
+                    tag?:
+                        | {
+                              name?: string;
+                          }
+                        | Array<{
+                              name?: string;
+                          }>;
+                };
+            };
+        };
+
+    if (!data.artist?.name) {
+        throw new Error(
+            "Artist information not found"
+        );
+    }
+
+    const rawTags =
+        data.artist.tags?.tag;
+
+    const tags =
+        !rawTags
+            ? []
+            : (
+                  Array.isArray(rawTags)
+                      ? rawTags
+                      : [rawTags]
+              )
+                  .map(
+                      (tag) =>
+                          tag.name
+                              ?.trim()
+                  )
+                  .filter(
+                      (
+                          tag
+                      ): tag is string =>
+                          Boolean(tag)
+                  )
+                  .slice(
+                      0,
+                      5
+                  );
+
+    return {
+        name:
+            data.artist.name,
+
+        url:
+            data.artist.url ?? "",
+
+        userPlaycount:
+            Number(
+                data.artist
+                    .stats
+                    ?.userplaycount ?? 0
+            ),
+
+        tags,
+    };
 }
 export async function getTopArtists(
     username: string,
-    period: TopArtistPeriod = "overall",
+    period: TopArtistPeriod = "7day",
     limit = 10
 ): Promise<TopArtist[]> {
     const safeLimit =
         Math.min(
-            Math.max(limit, 1),
-            15
+            Math.max(
+                limit,
+                1
+            ),
+            25
         );
 
     const data =
         (await requestLastFm({
-            method: "user.getTopArtists",
-            user: username,
+            method:
+                "user.getTopArtists",
+
+            user:
+                username,
+
             period,
+
             limit:
                 safeLimit.toString(),
         })) as {
             topartists?: {
                 artist?:
-                    | {
-                          name?: string;
-                          playcount?: string;
-                          url?: string;
-                      }
-                    | Array<{
-                          name?: string;
-                          playcount?: string;
-                          url?: string;
-                      }>;
+                | {
+                    name?: string;
+                    playcount?: string;
+                    url?: string;
+                }
+                | Array<{
+                    name?: string;
+                    playcount?: string;
+                    url?: string;
+                }>;
             };
         };
 
@@ -382,19 +527,24 @@ export async function getTopArtists(
     return artists
         .filter(
             (artist) =>
-                Boolean(artist.name)
+                Boolean(
+                    artist.name
+                )
         )
-        .map((artist) => ({
-            name:
-                artist.name ??
-                "Unknown Artist",
+        .map(
+            (artist) => ({
+                name:
+                    artist.name ??
+                    "Unknown Artist",
 
-            playcount:
-                Number(
-                    artist.playcount ?? 0
-                ),
+                playcount:
+                    Number(
+                        artist.playcount ??
+                        0
+                    ),
 
-            url:
-                artist.url ?? "",
-        }));
+                url:
+                    artist.url ?? "",
+            })
+        );
 }

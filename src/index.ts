@@ -16,16 +16,17 @@ import {
 } from "./database.js";
 
 import {
+    getArtistInfo,
     getLastFmUser as fetchLastFmUser,
     getRecentTrack,
     getRecentTracks,
     getTopArtists,
-    getTrackInfo,
     type TopArtistPeriod,
 } from "./lastfm.js";
 
 function requireEnv(name: string): string {
-    const value = process.env[name];
+    const value =
+        process.env[name];
 
     if (!value) {
         throw new Error(
@@ -36,29 +37,40 @@ function requireEnv(name: string): string {
     return value;
 }
 
-function getPeriodLabel(
+function humanizePeriod(
     period: TopArtistPeriod
 ): string {
     switch (period) {
         case "7day":
-            return "Last 7 days";
+            return "over the past week";
 
         case "1month":
-            return "Last month";
+            return "over the past month";
 
         case "3month":
-            return "Last 3 months";
+            return "over the past 3 months";
 
         case "6month":
-            return "Last 6 months";
+            return "over the past 6 months";
 
         case "12month":
-            return "Last 12 months";
+            return "over the past year";
 
         case "overall":
         default:
-            return "Overall";
+            return "overall";
     }
+}
+
+function pluralize(
+    amount: number,
+    singular: string,
+    plural = `${singular}s`
+): string {
+    return (
+        `${amount.toLocaleString()} ` +
+        `${amount === 1 ? singular : plural}`
+    );
 }
 
 const token =
@@ -105,23 +117,30 @@ const commands = [
     new SlashCommandBuilder()
         .setName("fm")
         .setDescription(
-            "Show your currently playing or most recent Last.fm track."
+            "Display your now playing or last played track."
+        )
+        .toJSON(),
+
+    new SlashCommandBuilder()
+        .setName("np")
+        .setDescription(
+            "Display your now playing or last played track."
         )
         .toJSON(),
 
     new SlashCommandBuilder()
         .setName("recent")
         .setDescription(
-            "Show your recent Last.fm scrobbles."
+            "Show a few of your recent tracks."
         )
         .addIntegerOption((option) =>
             option
                 .setName("count")
                 .setDescription(
-                    "Number of tracks to show"
+                    "The amount of recent tracks to show"
                 )
                 .setMinValue(1)
-                .setMaxValue(10)
+                .setMaxValue(15)
                 .setRequired(false)
         )
         .toJSON(),
@@ -129,13 +148,13 @@ const commands = [
     new SlashCommandBuilder()
         .setName("topartists")
         .setDescription(
-            "Show your top Last.fm artists."
+            "Show your top artists over a given time period."
         )
         .addStringOption((option) =>
             option
                 .setName("period")
                 .setDescription(
-                    "Time period for the chart"
+                    "The time period to use"
                 )
                 .addChoices(
                     {
@@ -169,18 +188,19 @@ const commands = [
             option
                 .setName("count")
                 .setDescription(
-                    "Number of artists to show"
+                    "The number of entries to show"
                 )
                 .setMinValue(1)
-                .setMaxValue(15)
+                .setMaxValue(25)
                 .setRequired(false)
         )
         .toJSON(),
 ];
 
-const rest = new REST({
-    version: "10",
-}).setToken(token);
+const rest =
+    new REST({
+        version: "10",
+    }).setToken(token);
 
 async function registerCommands() {
     console.log(
@@ -202,11 +222,12 @@ async function registerCommands() {
     );
 }
 
-const client = new Client({
-    intents: [
-        GatewayIntentBits.Guilds,
-    ],
-});
+const client =
+    new Client({
+        intents: [
+            GatewayIntentBits.Guilds,
+        ],
+    });
 
 client.once(
     Events.ClientReady,
@@ -278,7 +299,8 @@ client.on(
                     ).toLocaleString();
 
                 await interaction.editReply(
-                    `Linked your Discord account to **${lastFmUser.name}** on Last.fm.\nTotal scrobbles: **${playcount}**`
+                    `Linked your Discord account to **${lastFmUser.name}** on Last.fm.\n` +
+                    `Total scrobbles: **${playcount}**`
                 );
 
                 return;
@@ -319,7 +341,9 @@ client.on(
 
                 const embed =
                     new EmbedBuilder()
-                        .setColor(0xd92323)
+                        .setColor(
+                            0xd92323
+                        )
                         .setTitle(
                             lastFmUser.name
                         )
@@ -335,19 +359,23 @@ client.on(
                         });
 
                 await interaction.reply({
-                    embeds: [embed],
+                    embeds: [
+                        embed,
+                    ],
                 });
 
                 return;
             }
 
             // =================================================
-            // /fm
+            // /fm + /np
             // =================================================
 
             if (
                 interaction.commandName ===
-                "fm"
+                    "fm" ||
+                interaction.commandName ===
+                    "np"
             ) {
                 const username =
                     getSavedLastFmUser(
@@ -379,82 +407,129 @@ client.on(
                     return;
                 }
 
-                let userPlaycount = 0;
-                let listeners = 0;
-                let globalPlaycount = 0;
+                const [
+                    lastFmUser,
+                    artistInfo,
+                ] =
+                    await Promise.all([
+                        fetchLastFmUser(
+                            username
+                        ),
 
-                try {
-                    const trackInfo =
-                        await getTrackInfo(
+                        getArtistInfo(
                             username,
-                            track.artist,
-                            track.name
-                        );
+                            track.artist
+                        ).catch(
+                            (error) => {
+                                console.error(
+                                    "Could not load artist info:",
+                                    error
+                                );
 
-                    userPlaycount =
-                        trackInfo.userPlaycount;
+                                return null;
+                            }
+                        ),
+                    ]);
 
-                    listeners =
-                        trackInfo.listeners;
+                const artistName =
+                    artistInfo?.name ??
+                    track.artist;
 
-                    globalPlaycount =
-                        trackInfo.globalPlaycount;
-                } catch (error) {
-                    console.error(
-                        "Could not load track info:",
-                        error
+                const artistDisplay =
+                    artistInfo?.url
+                        ? `[**${artistName}**](${artistInfo.url})`
+                        : `**${artistName}**`;
+
+                const description =
+                    `by ${artistDisplay}` +
+                    (
+                        track.album
+                            ? ` from *${track.album}*`
+                            : ""
+                    );
+
+                const footerStats:
+                    string[] = [];
+
+                if (artistInfo) {
+                    footerStats.push(
+                        pluralize(
+                            artistInfo
+                                .userPlaycount,
+                            `${artistName} scrobble`,
+                            `${artistName} scrobbles`
+                        )
                     );
                 }
 
-                const statusText =
+                const totalScrobbles =
+                    Number(
+                        lastFmUser.playcount
+                    );
+
+                footerStats.push(
+                    pluralize(
+                        totalScrobbles,
+                        "total scrobble",
+                        "total scrobbles"
+                    )
+                );
+
+                let footerText =
+                    footerStats.join(
+                        " • "
+                    );
+
+                if (
+                    artistInfo &&
+                    artistInfo.tags.length > 0
+                ) {
+                    const tags =
+                        artistInfo.tags
+                            .map(
+                                (tag) =>
+                                    tag.toLowerCase()
+                            )
+                            .join(
+                                " • "
+                            );
+
+                    footerText +=
+                        `\n${tags}`;
+                }
+
+                const status =
                     track.nowPlaying
-                        ? "🎵 Now playing"
-                        : "Recently played";
+                        ? `Now playing for ${username}`
+                        : `Last scrobbled for ${username}`;
 
                 const embed =
                     new EmbedBuilder()
-                        .setColor(0xd92323)
-                        .setAuthor({
-                            name:
-                                `${interaction.user.displayName} · ${statusText}`,
-                        })
+                        .setColor(
+                            0x000000
+                        )
+                        .setAuthor(
+                            lastFmUser.url
+                                ? {
+                                      name:
+                                          status,
+                                      url:
+                                          lastFmUser.url,
+                                  }
+                                : {
+                                      name:
+                                          status,
+                                  }
+                        )
                         .setTitle(
                             track.name
                         )
                         .setDescription(
-                            `**${track.artist}**`
-                        )
-                        .addFields(
-                            {
-                                name: "Album",
-                                value:
-                                    track.album ||
-                                    "Unknown album",
-                                inline: true,
-                            },
-                            {
-                                name: "Your plays",
-                                value:
-                                    userPlaycount.toLocaleString(),
-                                inline: true,
-                            },
-                            {
-                                name: "Listeners",
-                                value:
-                                    listeners.toLocaleString(),
-                                inline: true,
-                            },
-                            {
-                                name:
-                                    "Global scrobbles",
-                                value:
-                                    globalPlaycount.toLocaleString(),
-                                inline: true,
-                            }
+                            description
                         )
                         .setFooter({
                             text:
-                                `${username} on Last.fm`,
+                                footerText,
                         });
 
                 if (track.url) {
@@ -469,20 +544,10 @@ client.on(
                     );
                 }
 
-                if (
-                    !track.nowPlaying &&
-                    track.timestamp
-                ) {
-                    embed.addFields({
-                        name: "Played",
-                        value:
-                            `<t:${track.timestamp}:R>`,
-                        inline: true,
-                    });
-                }
-
                 await interaction.editReply({
-                    embeds: [embed],
+                    embeds: [
+                        embed,
+                    ],
                 });
 
                 return;
@@ -525,7 +590,9 @@ client.on(
                         count
                     );
 
-                if (tracks.length === 0) {
+                if (
+                    tracks.length === 0
+                ) {
                     await interaction.editReply(
                         `I couldn't find any recent tracks for **${username}**.`
                     );
@@ -533,62 +600,88 @@ client.on(
                     return;
                 }
 
+                let numberedTrack = 0;
+
                 const lines =
                     tracks.map(
-                        (track, index) => {
-                            const number =
-                                index + 1;
-
-                            const time =
-                                track.nowPlaying
-                                    ? "🎵 **Now playing**"
-                                    : track.timestamp
-                                      ? `<t:${track.timestamp}:R>`
-                                      : "Unknown time";
+                        (track) => {
+                            const prefix =
+                                track
+                                    .nowPlaying
+                                    ? "`•`"
+                                    : `\`${++numberedTrack}.\``;
 
                             const trackName =
                                 track.url
                                     ? `[${track.name}](${track.url})`
                                     : track.name;
 
-                            return (
-                                `**${number}. ${trackName}**\n` +
-                                `${track.artist} · ${time}`
-                            );
+                            const firstLine =
+                                `${prefix} ${trackName} by **${track.artist}**`;
+
+                            let secondLine =
+                                "";
+
+                            if (
+                                track
+                                    .nowPlaying
+                            ) {
+                                secondLine =
+                                    "Now playing";
+                            } else if (
+                                track
+                                    .timestamp
+                            ) {
+                                secondLine =
+                                    `<t:${track.timestamp}:t>`;
+                            }
+
+                            if (
+                                track.album
+                            ) {
+                                secondLine +=
+                                    `${secondLine ? " • " : ""}` +
+                                    `from *${track.album}*`;
+                            }
+
+                            return secondLine
+                                ? `${firstLine}\n${secondLine}`
+                                : firstLine;
                         }
                     );
 
-                const firstArtwork =
+                const artwork =
                     tracks.find(
                         (track) =>
-                            track.imageUrl
+                            Boolean(
+                                track.imageUrl
+                            )
                     )?.imageUrl;
 
                 const embed =
                     new EmbedBuilder()
-                        .setColor(0xd92323)
-                        .setAuthor({
-                            name:
-                                `${interaction.user.displayName}'s recent tracks`,
-                        })
+                        .setColor(
+                            0x000000
+                        )
+                        .setTitle(
+                            "Your recent tracks"
+                        )
                         .setDescription(
                             lines.join(
                                 "\n\n"
                             )
-                        )
-                        .setFooter({
-                            text:
-                                `${username} on Last.fm`,
-                        });
+                        );
 
-                if (firstArtwork) {
+                if (artwork) {
                     embed.setThumbnail(
-                        firstArtwork
+                        artwork
                     );
                 }
 
                 await interaction.editReply({
-                    embeds: [embed],
+                    embeds: [
+                        embed,
+                    ],
                 });
 
                 return;
@@ -623,7 +716,7 @@ client.on(
                             .getString(
                                 "period"
                             ) ??
-                        "overall"
+                        "7day"
                     ) as TopArtistPeriod;
 
                 const count =
@@ -641,9 +734,11 @@ client.on(
                         count
                     );
 
-                if (artists.length === 0) {
+                if (
+                    artists.length === 0
+                ) {
                     await interaction.editReply(
-                        `I couldn't find any top artists for **${username}** during that period.`
+                        "You have no scrobbled artists over that time period."
                     );
 
                     return;
@@ -655,51 +750,50 @@ client.on(
                             artist,
                             index
                         ) => {
-                            const name =
+                            const artistName =
                                 artist.url
                                     ? `[${artist.name}](${artist.url})`
                                     : artist.name;
 
+                            const plays =
+                                pluralize(
+                                    artist.playcount,
+                                    "play"
+                                );
+
                             return (
-                                `**${index + 1}. ${name}**` +
-                                ` — ${artist.playcount.toLocaleString()} plays`
+                                `\`${index + 1}.\` ` +
+                                `${artistName} - ${plays}`
                             );
                         }
                     );
 
-                const periodLabel =
-                    getPeriodLabel(
-                        period
-                    );
-
                 const embed =
                     new EmbedBuilder()
-                        .setColor(0xd92323)
-                        .setAuthor({
-                            name:
-                                `${interaction.user.displayName}'s top artists`,
-                        })
+                        .setColor(
+                            0x000000
+                        )
                         .setTitle(
-                            periodLabel
+                            `Your top artists ${humanizePeriod(period)}`
                         )
                         .setDescription(
                             lines.join(
                                 "\n"
                             )
-                        )
-                        .setFooter({
-                            text:
-                                `${username} on Last.fm`,
-                        });
+                        );
 
                 await interaction.editReply({
-                    embeds: [embed],
+                    embeds: [
+                        embed,
+                    ],
                 });
 
                 return;
             }
         } catch (error) {
-            console.error(error);
+            console.error(
+                error
+            );
 
             const message =
                 error instanceof Error
@@ -726,4 +820,6 @@ client.on(
 
 await registerCommands();
 
-await client.login(token);
+await client.login(
+    token
+);
