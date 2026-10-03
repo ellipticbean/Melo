@@ -22,7 +22,10 @@ async function requestLastFm(
     const url =
         new URL(API_ROOT);
 
-    for (const [key, value] of Object.entries(params)) {
+    for (
+        const [key, value]
+        of Object.entries(params)
+    ) {
         url.searchParams.set(
             key,
             value
@@ -97,114 +100,42 @@ export type TrackInfo = {
     globalPlaycount: number;
 };
 
-export async function getLastFmUser(
-    username: string
-): Promise<LastFmUser> {
-    const data =
-        (await requestLastFm({
-            method: "user.getInfo",
-            user: username,
-        })) as {
-            user?: {
-                name?: string;
-                url?: string;
-                playcount?: string;
-            };
-        };
+type RawRecentTrack = {
+    name?: string;
 
-    if (!data.user?.name) {
-        throw new Error(
-            "Last.fm user not found"
-        );
-    }
+    artist?:
+        | string
+        | {
+              name?: string;
+              "#text"?: string;
+          };
 
-    return {
-        name: data.user.name,
-        url: data.user.url ?? "",
-        playcount:
-            data.user.playcount ?? "0",
+    album?:
+        | string
+        | {
+              "#text"?: string;
+          };
+
+    url?: string;
+
+    image?: Array<{
+        size?: string;
+        "#text"?: string;
+    }>;
+
+    "@attr"?: {
+        nowplaying?: string;
     };
-}
 
-export async function getRecentTrack(
-    username: string
-): Promise<RecentTrack | null> {
-    const data =
-        (await requestLastFm({
-            method:
-                "user.getRecentTracks",
-            user: username,
-            limit: "1",
-            extended: "1",
-        })) as {
-            recenttracks?: {
-                track?:
-                    | {
-                          name?: string;
-                          artist?:
-                              | string
-                              | {
-                                    name?: string;
-                                    "#text"?: string;
-                                };
-                          album?:
-                              | string
-                              | {
-                                    "#text"?: string;
-                                };
-                          url?: string;
-                          image?: Array<{
-                              size?: string;
-                              "#text"?: string;
-                          }>;
-                          "@attr"?: {
-                              nowplaying?: string;
-                          };
-                          date?: {
-                              uts?: string;
-                          };
-                      }
-                    | Array<{
-                          name?: string;
-                          artist?:
-                              | string
-                              | {
-                                    name?: string;
-                                    "#text"?: string;
-                                };
-                          album?:
-                              | string
-                              | {
-                                    "#text"?: string;
-                                };
-                          url?: string;
-                          image?: Array<{
-                              size?: string;
-                              "#text"?: string;
-                          }>;
-                          "@attr"?: {
-                              nowplaying?: string;
-                          };
-                          date?: {
-                              uts?: string;
-                          };
-                      }>;
-            };
-        };
+    date?: {
+        uts?: string;
+    };
+};
 
-    const rawTrack =
-        data.recenttracks?.track;
-
-    if (!rawTrack) {
-        return null;
-    }
-
-    const track =
-        Array.isArray(rawTrack)
-            ? rawTrack[0]
-            : rawTrack;
-
-    if (!track?.name) {
+function parseRecentTrack(
+    track: RawRecentTrack
+): RecentTrack | null {
+    if (!track.name) {
         return null;
     }
 
@@ -252,6 +183,95 @@ export async function getRecentTrack(
     };
 }
 
+export async function getLastFmUser(
+    username: string
+): Promise<LastFmUser> {
+    const data =
+        (await requestLastFm({
+            method: "user.getInfo",
+            user: username,
+        })) as {
+            user?: {
+                name?: string;
+                url?: string;
+                playcount?: string;
+            };
+        };
+
+    if (!data.user?.name) {
+        throw new Error(
+            "Last.fm user not found"
+        );
+    }
+
+    return {
+        name: data.user.name,
+        url: data.user.url ?? "",
+        playcount:
+            data.user.playcount ?? "0",
+    };
+}
+
+export async function getRecentTracks(
+    username: string,
+    limit = 5
+): Promise<RecentTrack[]> {
+    const safeLimit =
+        Math.min(
+            Math.max(limit, 1),
+            10
+        );
+
+    const data =
+        (await requestLastFm({
+            method:
+                "user.getRecentTracks",
+            user: username,
+            limit:
+                safeLimit.toString(),
+            extended: "1",
+        })) as {
+            recenttracks?: {
+                track?:
+                    | RawRecentTrack
+                    | RawRecentTrack[];
+            };
+        };
+
+    const rawTracks =
+        data.recenttracks?.track;
+
+    if (!rawTracks) {
+        return [];
+    }
+
+    const tracks =
+        Array.isArray(rawTracks)
+            ? rawTracks
+            : [rawTracks];
+
+    return tracks
+        .map(parseRecentTrack)
+        .filter(
+            (
+                track
+            ): track is RecentTrack =>
+                track !== null
+        );
+}
+
+export async function getRecentTrack(
+    username: string
+): Promise<RecentTrack | null> {
+    const tracks =
+        await getRecentTracks(
+            username,
+            1
+        );
+
+    return tracks[0] ?? null;
+}
+
 export async function getTrackInfo(
     username: string,
     artist: string,
@@ -269,9 +289,11 @@ export async function getTrackInfo(
                 userplaycount?:
                     | string
                     | number;
+
                 listeners?:
                     | string
                     | number;
+
                 playcount?:
                     | string
                     | number;

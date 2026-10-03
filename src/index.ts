@@ -18,6 +18,7 @@ import {
 import {
     getLastFmUser as fetchLastFmUser,
     getRecentTrack,
+    getRecentTracks,
     getTrackInfo,
 } from "./lastfm.js";
 
@@ -78,6 +79,23 @@ const commands = [
         .setName("fm")
         .setDescription(
             "Show your currently playing or most recent Last.fm track."
+        )
+        .toJSON(),
+
+    new SlashCommandBuilder()
+        .setName("recent")
+        .setDescription(
+            "Show your recent Last.fm scrobbles."
+        )
+        .addIntegerOption((option) =>
+            option
+                .setName("count")
+                .setDescription(
+                    "Number of tracks to show"
+                )
+                .setMinValue(1)
+                .setMaxValue(10)
+                .setRequired(false)
         )
         .toJSON(),
 ];
@@ -383,6 +401,112 @@ client.on(
                             `<t:${track.timestamp}:R>`,
                         inline: true,
                     });
+                }
+
+                await interaction.editReply({
+                    embeds: [embed],
+                });
+
+                return;
+            }
+
+            // =================================================
+            // /recent
+            // =================================================
+
+            if (
+                interaction.commandName ===
+                "recent"
+            ) {
+                const username =
+                    getSavedLastFmUser(
+                        interaction.user.id
+                    );
+
+                if (!username) {
+                    await interaction.reply({
+                        content:
+                            "You haven't linked a Last.fm account yet. Use `/setuser username:` first.",
+                        ephemeral: true,
+                    });
+
+                    return;
+                }
+
+                const count =
+                    interaction.options
+                        .getInteger(
+                            "count"
+                        ) ?? 5;
+
+                await interaction.deferReply();
+
+                const tracks =
+                    await getRecentTracks(
+                        username,
+                        count
+                    );
+
+                if (tracks.length === 0) {
+                    await interaction.editReply(
+                        `I couldn't find any recent tracks for **${username}**.`
+                    );
+
+                    return;
+                }
+
+                const lines =
+                    tracks.map(
+                        (track, index) => {
+                            const number =
+                                index + 1;
+
+                            const time =
+                                track.nowPlaying
+                                    ? "🎵 **Now playing**"
+                                    : track.timestamp
+                                      ? `<t:${track.timestamp}:R>`
+                                      : "Unknown time";
+
+                            const trackName =
+                                track.url
+                                    ? `[${track.name}](${track.url})`
+                                    : track.name;
+
+                            return (
+                                `**${number}. ${trackName}**\n` +
+                                `${track.artist} · ${time}`
+                            );
+                        }
+                    );
+
+                const firstArtwork =
+                    tracks.find(
+                        (track) =>
+                            track.imageUrl
+                    )?.imageUrl;
+
+                const embed =
+                    new EmbedBuilder()
+                        .setColor(0xd92323)
+                        .setAuthor({
+                            name:
+                                `${interaction.user.displayName}'s recent tracks`,
+                        })
+                        .setDescription(
+                            lines.join(
+                                "\n\n"
+                            )
+                        )
+                        .setFooter({
+                            text:
+                                `${username} on Last.fm`,
+                        });
+
+                if (firstArtwork) {
+                    embed.setThumbnail(
+                        firstArtwork
+                    );
                 }
 
                 await interaction.editReply({
