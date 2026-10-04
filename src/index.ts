@@ -22,6 +22,8 @@ import {
 import {
     FM_COMPONENTS,
     FM_COMPONENT_LABELS,
+    FM_PRESETS,
+    getFmPreset,
     normalizeFmConfig,
     renderFmFooter,
 } from "./fmConfig.js";
@@ -909,7 +911,15 @@ client.on(
                             .join(
                                 "\n"
                             );
-
+                    const presets =
+                        Object.keys(
+                            FM_PRESETS
+                        )
+                            .map(
+                                (preset) =>
+                                    `\`${preset}\``
+                            )
+                            .join(", ");
                     const embed =
                         new EmbedBuilder()
                             .setColor(
@@ -930,7 +940,13 @@ client.on(
                                 "`/npc reset` — Reset to Melo's default configuration\n\n" +
 
                                 "**Available options**\n" +
-                                options
+                                options +
+                                "\n\n" +
+
+                                "**Presets**\n" +
+                                presets +
+                                "\n\n" +
+                                "Presets can be used with `/npc set` and `/npc preview`."
                             )
                             .setFooter({
                                 text:
@@ -993,20 +1009,42 @@ client.on(
                         rawInput
                     );
 
+                const presetConfig =
+                    (
+                        parsed.length === 1 &&
+                        (
+                            subcommand ===
+                            "set" ||
+                            subcommand ===
+                            "preview"
+                        )
+                    )
+                        ? getFmPreset(
+                            parsed[0]
+                        )
+                        : null;
+
+                const usingPreset =
+                    presetConfig !== null;
+
                 const valid =
-                    normalizeFmConfig(
-                        parsed
-                    );
+                    usingPreset
+                        ? presetConfig
+                        : normalizeFmConfig(
+                            parsed
+                        );
 
                 const invalid =
-                    parsed.filter(
-                        (option) =>
-                            !(
-                                FM_COMPONENTS as readonly string[]
-                            ).includes(
-                                option
-                            )
-                    );
+                    usingPreset
+                        ? []
+                        : parsed.filter(
+                            (option) =>
+                                !(
+                                    FM_COMPONENTS as readonly string[]
+                                ).includes(
+                                    option
+                                )
+                        );
 
                 if (
                     invalid.length > 0
@@ -1159,9 +1197,11 @@ client.on(
                         );
 
                     const previewLabel =
-                        valid.length === 1
-                            ? valid[0]
-                            : `${valid.length} options`;
+                        usingPreset
+                            ? `${parsed[0]} preset`
+                            : valid.length === 1
+                                ? valid[0]
+                                : `${valid.length} options`;
 
                     const embed =
                         new EmbedBuilder()

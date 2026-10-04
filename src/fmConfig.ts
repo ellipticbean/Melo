@@ -16,7 +16,61 @@ export const FM_COMPONENTS = [
     "artist-tags",
     "track-tags",
 ] as const;
+// =================================================
+// PRESETS
+// =================================================
 
+export const FM_PRESETS = {
+    blank: [],
+
+    default: [
+        "artist-plays",
+        "scrobbles",
+        "artist-tags",
+    ],
+
+    verbose: [
+        "loved",
+        "artist-plays",
+        "track-plays",
+        "artist-tags",
+        "track-tags",
+    ],
+
+    all: [
+        ...FM_COMPONENTS,
+    ],
+} satisfies Record<
+    string,
+    readonly FmComponent[]
+>;
+
+export type FmPreset =
+    keyof typeof FM_PRESETS;
+
+export function getFmPreset(
+    name: string
+): FmComponent[] | null {
+    const normalized =
+        name
+            .trim()
+            .toLowerCase();
+
+    if (
+        !Object.prototype.hasOwnProperty.call(
+            FM_PRESETS,
+            normalized
+        )
+    ) {
+        return null;
+    }
+
+    return [
+        ...FM_PRESETS[
+        normalized as FmPreset
+        ],
+    ];
+}
 export type FmComponent =
     (typeof FM_COMPONENTS)[number];
 
@@ -96,12 +150,12 @@ export type FmFooterData = {
     trackName: string;
 
     artistInfo:
-        | ArtistInfo
-        | null;
+    | ArtistInfo
+    | null;
 
     trackInfo:
-        | TrackInfo
-        | null;
+    | TrackInfo
+    | null;
 
     totalScrobbles: number;
 };
@@ -336,7 +390,7 @@ function organizeRows(
 
                     return (
                         ROW_SIZE -
-                            used >=
+                        used >=
                         piece.size
                     );
                 }
