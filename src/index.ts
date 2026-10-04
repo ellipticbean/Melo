@@ -23,6 +23,7 @@ import {
 } from "./database.js";
 
 import {
+    ALBUM_FM_CONFIG,
     FM_COMPONENTS,
     FM_COMPONENT_LABELS,
     FM_PRESETS,
@@ -172,6 +173,27 @@ const commands = [
             "Display your custom now playing or last played track."
         )
         .toJSON(),
+
+    new SlashCommandBuilder()
+        .setName("fma")
+        .setDescription(
+            "Display your now playing track with album information."
+        )
+        .toJSON(),
+
+    new SlashCommandBuilder()
+        .setName("fml")
+        .setDescription(
+            "Display your now playing track with album information."
+        )
+        .toJSON(),
+
+    new SlashCommandBuilder()
+        .setName("npl")
+        .setDescription(
+            "Display your now playing track with album information."
+        )
+        .toJSON(),
     new SlashCommandBuilder()
         .setName("fmmode")
         .setDescription(
@@ -196,6 +218,10 @@ const commands = [
                         {
                             name: "Custom",
                             value: "custom",
+                        },
+                        {
+                            name: "Album",
+                            value: "album",
                         }
                     )
                     .setRequired(false)
@@ -619,6 +645,12 @@ client.on(
                         getFmConfig(
                             userId
                         );
+                } else if (
+                    fmMode ===
+                    "album"
+                ) {
+                    fmConfig =
+                        ALBUM_FM_CONFIG;
                 } else {
                     fmConfig =
                         getFmPreset(
@@ -930,6 +962,208 @@ client.on(
                 const footerText =
                     renderFmFooter(
                         fmConfig,
+                        {
+                            artistName,
+
+                            albumName:
+                                track.album,
+
+                            trackName:
+                                track.name,
+
+                            artistInfo,
+
+                            albumInfo,
+
+                            trackInfo,
+
+                            totalScrobbles:
+                                Number(
+                                    lastFmUser.playcount
+                                ),
+                        }
+                    );
+
+                const status =
+                    track.nowPlaying
+                        ? `Now playing for ${username}`
+                        : `Last scrobbled for ${username}`;
+
+                const embed =
+                    new EmbedBuilder()
+                        .setColor(
+                            0x000000
+                        )
+                        .setAuthor(
+                            lastFmUser.url
+                                ? {
+                                    name:
+                                        status,
+                                    url:
+                                        lastFmUser.url,
+                                }
+                                : {
+                                    name:
+                                        status,
+                                }
+                        )
+                        .setTitle(
+                            track.name
+                        )
+                        .setDescription(
+                            description
+                        );
+
+                if (track.url) {
+                    embed.setURL(
+                        track.url
+                    );
+                }
+
+                if (track.imageUrl) {
+                    embed.setThumbnail(
+                        track.imageUrl
+                    );
+                }
+
+                if (footerText) {
+                    embed.setFooter({
+                        text:
+                            footerText,
+                    });
+                }
+
+                await interaction.editReply({
+                    embeds: [
+                        embed,
+                    ],
+                });
+
+                return;
+            }
+            // =================================================
+            // /fma + /fml + /npl
+            // =================================================
+
+            if (
+                interaction.commandName ===
+                "fma" ||
+                interaction.commandName ===
+                "fml" ||
+                interaction.commandName ===
+                "npl"
+            ) {
+                const username =
+                    getSavedLastFmUser(
+                        interaction.user.id
+                    );
+
+                if (!username) {
+                    await interaction.reply({
+                        content:
+                            "You haven't linked a Last.fm account yet. Use `/setuser username:` first.",
+                        flags:
+                            MessageFlags.Ephemeral,
+                    });
+
+                    return;
+                }
+
+                await interaction.deferReply();
+
+                const track =
+                    await getRecentTrack(
+                        username
+                    );
+
+                if (!track) {
+                    await interaction.editReply(
+                        `I couldn't find any recent tracks for **${username}**.`
+                    );
+
+                    return;
+                }
+
+                const [
+                    lastFmUser,
+                    artistInfo,
+                    trackInfo,
+                    albumInfo,
+                ] =
+                    await Promise.all([
+                        fetchLastFmUser(
+                            username
+                        ),
+
+                        getArtistInfo(
+                            username,
+                            track.artist
+                        ).catch(
+                            (error) => {
+                                console.error(
+                                    "Could not load artist info:",
+                                    error
+                                );
+
+                                return null;
+                            }
+                        ),
+
+                        getTrackInfo(
+                            username,
+                            track.artist,
+                            track.name
+                        ).catch(
+                            (error) => {
+                                console.error(
+                                    "Could not load track info:",
+                                    error
+                                );
+
+                                return null;
+                            }
+                        ),
+
+                        track.album
+                            ? getAlbumInfo(
+                                username,
+                                track.artist,
+                                track.album
+                            ).catch(
+                                (error) => {
+                                    console.error(
+                                        "Could not load album info:",
+                                        error
+                                    );
+
+                                    return null;
+                                }
+                            )
+                            : Promise.resolve(
+                                null
+                            ),
+                    ]);
+
+                const artistName =
+                    artistInfo?.name ??
+                    track.artist;
+
+                const artistDisplay =
+                    artistInfo?.url
+                        ? `[**${artistName}**](${artistInfo.url})`
+                        : `**${artistName}**`;
+
+                const description =
+                    `by ${artistDisplay}` +
+                    (
+                        track.album
+                            ? ` from *${track.album}*`
+                            : ""
+                    );
+
+                const footerText =
+                    renderFmFooter(
+                        ALBUM_FM_CONFIG,
                         {
                             artistName,
 

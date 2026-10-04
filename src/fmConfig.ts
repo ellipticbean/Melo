@@ -102,7 +102,16 @@ export const FM_COMPONENT_LABELS:
     "track-tags":
         "Track tags",
 };
+// =================================================
+// SPECIAL FM MODE CONFIGS
+// =================================================
 
+export const ALBUM_FM_CONFIG:
+    FmComponent[] = [
+        "artist-plays",
+        "album-plays",
+        "artist-tags",
+    ];
 // =================================================
 // CONFIG HELPERS
 // =================================================

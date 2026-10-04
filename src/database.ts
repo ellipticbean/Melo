@@ -53,7 +53,8 @@ database.exec(`
 export type FmMode =
     | "default"
     | "verbose"
-    | "custom";
+    | "custom"
+    | "album";
 
 // =================================================
 // DEFAULTS
@@ -168,10 +169,10 @@ export function getLastFmUser(
         getUserStatement.get(
             discordUserId
         ) as
-            | {
-                  lastfm_username: string;
-              }
-            | undefined;
+        | {
+            lastfm_username: string;
+        }
+        | undefined;
 
     return (
         row?.lastfm_username ??
@@ -203,10 +204,10 @@ export function getFmConfig(
         getFmConfigStatement.get(
             discordUserId
         ) as
-            | {
-                  config_json: string;
-              }
-            | undefined;
+        | {
+            config_json: string;
+        }
+        | undefined;
 
     if (!row) {
         return [
@@ -274,18 +275,20 @@ export function getFmMode(
         getFmModeStatement.get(
             discordUserId
         ) as
-            | {
-                  fm_mode: string;
-              }
-            | undefined;
+        | {
+            fm_mode: string;
+        }
+        | undefined;
 
     if (
         row?.fm_mode ===
-            "default" ||
+        "default" ||
         row?.fm_mode ===
-            "verbose" ||
+        "verbose" ||
         row?.fm_mode ===
-            "custom"
+        "custom" ||
+        row?.fm_mode ===
+        "album"
     ) {
         return row.fm_mode;
     }
