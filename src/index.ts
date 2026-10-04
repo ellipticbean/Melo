@@ -21,6 +21,7 @@ import {
 
 import {
     FM_COMPONENTS,
+    FM_COMPONENT_LABELS,
     normalizeFmConfig,
     renderFmFooter,
 } from "./fmConfig.js";
@@ -184,6 +185,37 @@ const commands = [
         .addSubcommand(
             (subcommand) =>
                 subcommand
+                    .setName("help")
+                    .setDescription(
+                        "View help for customizing your now-playing footer."
+                    )
+        )
+
+        .addSubcommand(
+            (subcommand) =>
+                subcommand
+                    .setName("preview")
+                    .setDescription(
+                        "Preview an FM configuration without saving it."
+                    )
+                    .addStringOption(
+                        (option) =>
+                            option
+                                .setName(
+                                    "options"
+                                )
+                                .setDescription(
+                                    "Example: loved artist-plays listeners artist-tags"
+                                )
+                                .setRequired(
+                                    true
+                                )
+                    )
+        )
+
+        .addSubcommand(
+            (subcommand) =>
+                subcommand
                     .setName("set")
                     .setDescription(
                         "Replace your FM configuration."
@@ -256,74 +288,6 @@ const commands = [
                     )
         )
 
-        .toJSON(),
-
-    new SlashCommandBuilder()
-        .setName("recent")
-        .setDescription(
-            "Show a few of your recent tracks."
-        )
-        .addIntegerOption((option) =>
-            option
-                .setName("count")
-                .setDescription(
-                    "The amount of recent tracks to show"
-                )
-                .setMinValue(1)
-                .setMaxValue(15)
-                .setRequired(false)
-        )
-        .toJSON(),
-
-    new SlashCommandBuilder()
-        .setName("topartists")
-        .setDescription(
-            "Show your top artists over a given time period."
-        )
-        .addStringOption((option) =>
-            option
-                .setName("period")
-                .setDescription(
-                    "The time period to use"
-                )
-                .addChoices(
-                    {
-                        name: "7 days",
-                        value: "7day",
-                    },
-                    {
-                        name: "1 month",
-                        value: "1month",
-                    },
-                    {
-                        name: "3 months",
-                        value: "3month",
-                    },
-                    {
-                        name: "6 months",
-                        value: "6month",
-                    },
-                    {
-                        name: "12 months",
-                        value: "12month",
-                    },
-                    {
-                        name: "Overall",
-                        value: "overall",
-                    }
-                )
-                .setRequired(false)
-        )
-        .addIntegerOption((option) =>
-            option
-                .setName("count")
-                .setDescription(
-                    "The number of entries to show"
-                )
-                .setMinValue(1)
-                .setMaxValue(25)
-                .setRequired(false)
-        )
         .toJSON(),
 ];
 
@@ -921,7 +885,64 @@ client.on(
                         embeds: [
                             embed,
                         ],
-                        flags: MessageFlags.Ephemeral,
+                        flags:
+                            MessageFlags.Ephemeral,
+                    });
+
+                    return;
+                }
+
+                // ---------------------------------------------
+                // /npc help
+                // ---------------------------------------------
+
+                if (
+                    subcommand ===
+                    "help"
+                ) {
+                    const options =
+                        FM_COMPONENTS
+                            .map(
+                                (component) =>
+                                    `\`${component}\` — ${FM_COMPONENT_LABELS[component]}`
+                            )
+                            .join(
+                                "\n"
+                            );
+
+                    const embed =
+                        new EmbedBuilder()
+                            .setColor(
+                                0x000000
+                            )
+                            .setTitle(
+                                "Help with now-playing config"
+                            )
+                            .setDescription(
+                                "Now-playing config lets you choose which elements appear in your `/fmx` and `/npx` footer.\n\n" +
+
+                                "**Commands**\n" +
+                                "`/npc view` — View your current configuration\n" +
+                                "`/npc preview` — Preview options without saving them\n" +
+                                "`/npc set` — Replace your entire configuration\n" +
+                                "`/npc add` — Add options to your current configuration\n" +
+                                "`/npc remove` — Remove options from your current configuration\n" +
+                                "`/npc reset` — Reset to Melo's default configuration\n\n" +
+
+                                "**Available options**\n" +
+                                options
+                            )
+                            .setFooter({
+                                text:
+                                    "Use /npc set to replace your config, or /npc add and /npc remove to edit it.",
+                            });
+
+                    await interaction.reply({
+                        embeds: [
+                            embed,
+                        ],
+                        flags:
+                            MessageFlags.Ephemeral,
                     });
 
                     return;
@@ -953,7 +974,8 @@ client.on(
                                         `\`${component}\``
                                 )
                                 .join(", "),
-                        flags: MessageFlags.Ephemeral,
+                        flags:
+                            MessageFlags.Ephemeral,
                     });
 
                     return;
@@ -981,7 +1003,9 @@ client.on(
                         (option) =>
                             !(
                                 FM_COMPONENTS as readonly string[]
-                            ).includes(option)
+                            ).includes(
+                                option
+                            )
                     );
 
                 if (
@@ -1009,12 +1033,179 @@ client.on(
                                         `\`${component}\``
                                 )
                                 .join(", "),
-                        flags: MessageFlags.Ephemeral,
+                        flags:
+                            MessageFlags.Ephemeral,
                     });
 
                     return;
                 }
+                // ---------------------------------------------
+                // /npc preview
+                // ---------------------------------------------
 
+                if (
+                    subcommand ===
+                    "preview"
+                ) {
+                    const username =
+                        getSavedLastFmUser(
+                            userId
+                        );
+
+                    if (!username) {
+                        await interaction.reply({
+                            content:
+                                "You haven't linked a Last.fm account yet. Use `/setuser username:` first.",
+                            flags:
+                                MessageFlags.Ephemeral,
+                        });
+
+                        return;
+                    }
+
+                    await interaction.deferReply({
+                        flags:
+                            MessageFlags.Ephemeral,
+                    });
+
+                    const track =
+                        await getRecentTrack(
+                            username
+                        );
+
+                    if (!track) {
+                        await interaction.editReply(
+                            `I couldn't find any recent tracks for **${username}**.`
+                        );
+
+                        return;
+                    }
+
+                    const [
+                        lastFmUser,
+                        artistInfo,
+                        trackInfo,
+                    ] =
+                        await Promise.all([
+                            fetchLastFmUser(
+                                username
+                            ),
+
+                            getArtistInfo(
+                                username,
+                                track.artist
+                            ).catch(
+                                (error) => {
+                                    console.error(
+                                        "Could not load artist info:",
+                                        error
+                                    );
+
+                                    return null;
+                                }
+                            ),
+
+                            getTrackInfo(
+                                username,
+                                track.artist,
+                                track.name
+                            ).catch(
+                                (error) => {
+                                    console.error(
+                                        "Could not load track info:",
+                                        error
+                                    );
+
+                                    return null;
+                                }
+                            ),
+                        ]);
+
+                    const artistName =
+                        artistInfo?.name ??
+                        track.artist;
+
+                    const artistDisplay =
+                        artistInfo?.url
+                            ? `[**${artistName}**](${artistInfo.url})`
+                            : `**${artistName}**`;
+
+                    const description =
+                        `by ${artistDisplay}` +
+                        (
+                            track.album
+                                ? ` from *${track.album}*`
+                                : ""
+                        );
+
+                    const footerText =
+                        renderFmFooter(
+                            valid,
+                            {
+                                artistName,
+
+                                trackName:
+                                    track.name,
+
+                                artistInfo,
+
+                                trackInfo,
+
+                                totalScrobbles:
+                                    Number(
+                                        lastFmUser.playcount
+                                    ),
+                            }
+                        );
+
+                    const previewLabel =
+                        valid.length === 1
+                            ? valid[0]
+                            : `${valid.length} options`;
+
+                    const embed =
+                        new EmbedBuilder()
+                            .setColor(
+                                0x000000
+                            )
+                            .setAuthor({
+                                name:
+                                    `Previewing ${previewLabel}`,
+                            })
+                            .setTitle(
+                                track.name
+                            )
+                            .setDescription(
+                                description
+                            );
+
+                    if (track.url) {
+                        embed.setURL(
+                            track.url
+                        );
+                    }
+
+                    if (track.imageUrl) {
+                        embed.setThumbnail(
+                            track.imageUrl
+                        );
+                    }
+
+                    if (footerText) {
+                        embed.setFooter({
+                            text:
+                                footerText,
+                        });
+                    }
+
+                    await interaction.editReply({
+                        embeds: [
+                            embed,
+                        ],
+                    });
+
+                    return;
+                }
                 // ---------------------------------------------
                 // /npc set
                 // ---------------------------------------------
@@ -1041,7 +1232,8 @@ client.on(
                                         .join(", ")
                                     : "*Empty configuration*"
                             ),
-                        flags: MessageFlags.Ephemeral,
+                        flags:
+                            MessageFlags.Ephemeral,
                     });
 
                     return;
@@ -1074,13 +1266,18 @@ client.on(
                     await interaction.reply({
                         content:
                             "Your new FM configuration is:\n" +
-                            updated
-                                .map(
-                                    (component) =>
-                                        `\`${component}\``
-                                )
-                                .join(", "),
-                        flags: MessageFlags.Ephemeral,
+                            (
+                                updated.length > 0
+                                    ? updated
+                                        .map(
+                                            (component) =>
+                                                `\`${component}\``
+                                        )
+                                        .join(", ")
+                                    : "*Empty configuration*"
+                            ),
+                        flags:
+                            MessageFlags.Ephemeral,
                     });
 
                     return;
@@ -1100,7 +1297,7 @@ client.on(
                         );
 
                     const removeSet =
-                        new Set(
+                        new Set<string>(
                             valid
                         );
 
@@ -1108,7 +1305,7 @@ client.on(
                         current.filter(
                             (component) =>
                                 !removeSet.has(
-                                    component as never
+                                    component
                                 )
                         );
 
@@ -1130,7 +1327,8 @@ client.on(
                                         .join(", ")
                                     : "*Empty configuration*"
                             ),
-                        flags: MessageFlags.Ephemeral,
+                        flags:
+                            MessageFlags.Ephemeral,
                     });
 
                     return;
