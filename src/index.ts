@@ -13,10 +13,13 @@ import {
 
 import {
     getFmConfig,
+    getFmMode,
     getLastFmUser as getSavedLastFmUser,
     resetFmConfig,
     saveFmConfig,
+    saveFmMode,
     saveLastFmUser,
+    type FmMode,
 } from "./database.js";
 
 import {
@@ -168,7 +171,35 @@ const commands = [
             "Display your custom now playing or last played track."
         )
         .toJSON(),
-
+    new SlashCommandBuilder()
+        .setName("fmmode")
+        .setDescription(
+            "Choose which now-playing mode /fm and /np use."
+        )
+        .addStringOption(
+            (option) =>
+                option
+                    .setName("mode")
+                    .setDescription(
+                        "The FM mode to use"
+                    )
+                    .addChoices(
+                        {
+                            name: "Default",
+                            value: "default",
+                        },
+                        {
+                            name: "Verbose",
+                            value: "verbose",
+                        },
+                        {
+                            name: "Custom",
+                            value: "custom",
+                        }
+                    )
+                    .setRequired(false)
+        )
+        .toJSON(),
     new SlashCommandBuilder()
         .setName("npc")
         .setDescription(
@@ -462,7 +493,71 @@ client.on(
 
                 return;
             }
+            // =================================================
+            // /fmmode
+            // =================================================
 
+            if (
+                interaction.commandName ===
+                "fmmode"
+            ) {
+                const selectedMode =
+                    interaction.options
+                        .getString(
+                            "mode"
+                        ) as
+                    | FmMode
+                    | null;
+
+                // No mode supplied:
+                // just show the current setting.
+                if (!selectedMode) {
+                    const currentMode =
+                        getFmMode(
+                            interaction.user.id
+                        );
+
+                    const embed =
+                        new EmbedBuilder()
+                            .setColor(
+                                0x000000
+                            )
+                            .setTitle(
+                                "Your FM mode"
+                            )
+                            .setDescription(
+                                `Your current \`/fm\` mode is: \`${currentMode}\``
+                            )
+                            .setFooter({
+                                text:
+                                    "Use /fmmode mode: to change it.",
+                            });
+
+                    await interaction.reply({
+                        embeds: [
+                            embed,
+                        ],
+                        flags:
+                            MessageFlags.Ephemeral,
+                    });
+
+                    return;
+                }
+
+                saveFmMode(
+                    interaction.user.id,
+                    selectedMode
+                );
+
+                await interaction.reply({
+                    content:
+                        `Your new \`/fm\` mode is: \`${selectedMode}\``,
+                    flags:
+                        MessageFlags.Ephemeral,
+                });
+
+                return;
+            }
             // =================================================
             // /fm + /np
             // =================================================
@@ -473,16 +568,20 @@ client.on(
                 interaction.commandName ===
                 "np"
             ) {
+                const userId =
+                    interaction.user.id;
+
                 const username =
                     getSavedLastFmUser(
-                        interaction.user.id
+                        userId
                     );
 
                 if (!username) {
                     await interaction.reply({
                         content:
                             "You haven't linked a Last.fm account yet. Use `/setuser username:` first.",
-                        flags: MessageFlags.Ephemeral,
+                        flags:
+                            MessageFlags.Ephemeral,
                     });
 
                     return;
@@ -506,6 +605,7 @@ client.on(
                 const [
                     lastFmUser,
                     artistInfo,
+                    trackInfo,
                 ] =
                     await Promise.all([
                         fetchLastFmUser(
@@ -519,6 +619,21 @@ client.on(
                             (error) => {
                                 console.error(
                                     "Could not load artist info:",
+                                    error
+                                );
+
+                                return null;
+                            }
+                        ),
+
+                        getTrackInfo(
+                            username,
+                            track.artist,
+                            track.name
+                        ).catch(
+                            (error) => {
+                                console.error(
+                                    "Could not load track info:",
                                     error
                                 );
 
@@ -544,55 +659,52 @@ client.on(
                             : ""
                     );
 
-                const footerStats:
-                    string[] = [];
+                // ---------------------------------------------
+                // Determine which FM mode this user selected.
+                // ---------------------------------------------
 
-                if (artistInfo) {
-                    footerStats.push(
-                        pluralize(
-                            artistInfo
-                                .userPlaycount,
-                            `${artistName} scrobble`,
-                            `${artistName} scrobbles`
-                        )
-                    );
-                }
-
-                const totalScrobbles =
-                    Number(
-                        lastFmUser.playcount
+                const fmMode =
+                    getFmMode(
+                        userId
                     );
 
-                footerStats.push(
-                    pluralize(
-                        totalScrobbles,
-                        "total scrobble",
-                        "total scrobbles"
-                    )
-                );
-
-                let footerText =
-                    footerStats.join(
-                        " • "
-                    );
+                let fmConfig:
+                    string[];
 
                 if (
-                    artistInfo &&
-                    artistInfo.tags.length > 0
+                    fmMode ===
+                    "custom"
                 ) {
-                    const tags =
-                        artistInfo.tags
-                            .map(
-                                (tag) =>
-                                    tag.toLowerCase()
-                            )
-                            .join(
-                                " • "
-                            );
-
-                    footerText +=
-                        `\n${tags}`;
+                    fmConfig =
+                        getFmConfig(
+                            userId
+                        );
+                } else {
+                    fmConfig =
+                        getFmPreset(
+                            fmMode
+                        ) ?? [];
                 }
+
+                const footerText =
+                    renderFmFooter(
+                        fmConfig,
+                        {
+                            artistName,
+
+                            trackName:
+                                track.name,
+
+                            artistInfo,
+
+                            trackInfo,
+
+                            totalScrobbles:
+                                Number(
+                                    lastFmUser.playcount
+                                ),
+                        }
+                    );
 
                 const status =
                     track.nowPlaying
@@ -622,11 +734,7 @@ client.on(
                         )
                         .setDescription(
                             description
-                        )
-                        .setFooter({
-                            text:
-                                footerText,
-                        });
+                        );
 
                 if (track.url) {
                     embed.setURL(
@@ -638,6 +746,13 @@ client.on(
                     embed.setThumbnail(
                         track.imageUrl
                     );
+                }
+
+                if (footerText) {
+                    embed.setFooter({
+                        text:
+                            footerText,
+                    });
                 }
 
                 await interaction.editReply({

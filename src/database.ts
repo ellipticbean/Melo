@@ -10,6 +10,10 @@ const database =
         "data/melo.db"
     );
 
+// =================================================
+// LAST.FM USERS
+// =================================================
+
 database.exec(`
     CREATE TABLE IF NOT EXISTS users (
         discord_user_id TEXT PRIMARY KEY,
@@ -18,6 +22,10 @@ database.exec(`
     )
 `);
 
+// =================================================
+// CUSTOM FM CONFIGS
+// =================================================
+
 database.exec(`
     CREATE TABLE IF NOT EXISTS fm_configs (
         discord_user_id TEXT PRIMARY KEY,
@@ -25,6 +33,46 @@ database.exec(`
         updated_at INTEGER NOT NULL
     )
 `);
+
+// =================================================
+// FM MODE SETTINGS
+// =================================================
+
+database.exec(`
+    CREATE TABLE IF NOT EXISTS fm_settings (
+        discord_user_id TEXT PRIMARY KEY,
+        fm_mode TEXT NOT NULL,
+        updated_at INTEGER NOT NULL
+    )
+`);
+
+// =================================================
+// TYPES
+// =================================================
+
+export type FmMode =
+    | "default"
+    | "verbose"
+    | "custom";
+
+// =================================================
+// DEFAULTS
+// =================================================
+
+export const DEFAULT_FM_CONFIG = [
+    "loved",
+    "artist-plays",
+    "track-plays",
+    "artist-tags",
+];
+
+export const DEFAULT_FM_MODE:
+    FmMode =
+    "default";
+
+// =================================================
+// PREPARED STATEMENTS
+// =================================================
 
 const saveUserStatement =
     database.prepare(`
@@ -76,15 +124,31 @@ const deleteFmConfigStatement =
         WHERE discord_user_id = ?
     `);
 
-// This matches the Melo /fmx layout we already built.
-//
-// Later users will be able to replace this with /npc set.
-export const DEFAULT_FM_CONFIG = [
-    "loved",
-    "artist-plays",
-    "track-plays",
-    "artist-tags",
-];
+const saveFmModeStatement =
+    database.prepare(`
+        INSERT INTO fm_settings (
+            discord_user_id,
+            fm_mode,
+            updated_at
+        )
+        VALUES (?, ?, ?)
+
+        ON CONFLICT(discord_user_id)
+        DO UPDATE SET
+            fm_mode = excluded.fm_mode,
+            updated_at = excluded.updated_at
+    `);
+
+const getFmModeStatement =
+    database.prepare(`
+        SELECT fm_mode
+        FROM fm_settings
+        WHERE discord_user_id = ?
+    `);
+
+// =================================================
+// LAST.FM USER FUNCTIONS
+// =================================================
 
 export function saveLastFmUser(
     discordUserId: string,
@@ -115,13 +179,19 @@ export function getLastFmUser(
     );
 }
 
+// =================================================
+// CUSTOM FM CONFIG FUNCTIONS
+// =================================================
+
 export function saveFmConfig(
     discordUserId: string,
     config: string[]
 ) {
     saveFmConfigStatement.run(
         discordUserId,
-        JSON.stringify(config),
+        JSON.stringify(
+            config
+        ),
         Date.now()
     );
 }
@@ -151,7 +221,9 @@ export function getFmConfig(
             );
 
         if (
-            !Array.isArray(parsed)
+            !Array.isArray(
+                parsed
+            )
         ) {
             return [
                 ...DEFAULT_FM_CONFIG,
@@ -178,4 +250,45 @@ export function resetFmConfig(
     deleteFmConfigStatement.run(
         discordUserId
     );
+}
+
+// =================================================
+// FM MODE FUNCTIONS
+// =================================================
+
+export function saveFmMode(
+    discordUserId: string,
+    mode: FmMode
+) {
+    saveFmModeStatement.run(
+        discordUserId,
+        mode,
+        Date.now()
+    );
+}
+
+export function getFmMode(
+    discordUserId: string
+): FmMode {
+    const row =
+        getFmModeStatement.get(
+            discordUserId
+        ) as
+            | {
+                  fm_mode: string;
+              }
+            | undefined;
+
+    if (
+        row?.fm_mode ===
+            "default" ||
+        row?.fm_mode ===
+            "verbose" ||
+        row?.fm_mode ===
+            "custom"
+    ) {
+        return row.fm_mode;
+    }
+
+    return DEFAULT_FM_MODE;
 }
