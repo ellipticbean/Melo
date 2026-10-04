@@ -76,7 +76,7 @@ async function requestLastFm(
 
         throw new Error(
             errorData.message ??
-                "Last.fm returned an error"
+            "Last.fm returned an error"
         );
     }
 
@@ -118,7 +118,15 @@ export type ArtistInfo = {
     listeners: number;
     tags: string[];
 };
-
+export type AlbumInfo = {
+    name: string;
+    artist: string;
+    url: string;
+    userPlaycount: number;
+    listeners: number;
+    globalPlaycount: number;
+    tags: string[];
+};
 export type TopArtistPeriod =
     | "overall"
     | "7day"
@@ -137,17 +145,17 @@ type RawRecentTrack = {
     name?: string;
 
     artist?:
-        | string
-        | {
-              name?: string;
-              "#text"?: string;
-          };
+    | string
+    | {
+        name?: string;
+        "#text"?: string;
+    };
 
     album?:
-        | string
-        | {
-              "#text"?: string;
-          };
+    | string
+    | {
+        "#text"?: string;
+    };
 
     url?: string;
 
@@ -178,21 +186,21 @@ function parseRecentTrack(
 
     const artist =
         typeof track.artist ===
-        "string"
+            "string"
             ? track.artist
             : track.artist?.name ??
-              track.artist?.[
-                  "#text"
-              ] ??
-              "Unknown Artist";
+            track.artist?.[
+            "#text"
+            ] ??
+            "Unknown Artist";
 
     const album =
         typeof track.album ===
-        "string"
+            "string"
             ? track.album
             : track.album?.[
-                  "#text"
-              ] ?? "";
+            "#text"
+            ] ?? "";
 
     const image =
         track.image
@@ -210,8 +218,8 @@ function parseRecentTrack(
     const timestamp =
         track.date?.uts
             ? Number(
-                  track.date.uts
-              )
+                track.date.uts
+            )
             : null;
 
     return {
@@ -227,7 +235,7 @@ function parseRecentTrack(
 
         imageUrl:
             image &&
-            image.length > 0
+                image.length > 0
                 ? image
                 : null,
 
@@ -311,8 +319,8 @@ export async function getRecentTracks(
         })) as {
             recenttracks?: {
                 track?:
-                    | RawRecentTrack
-                    | RawRecentTrack[];
+                | RawRecentTrack
+                | RawRecentTrack[];
             };
         };
 
@@ -382,29 +390,29 @@ export async function getTrackInfo(
         })) as {
             track?: {
                 userplaycount?:
-                    | string
-                    | number;
+                | string
+                | number;
 
                 listeners?:
-                    | string
-                    | number;
+                | string
+                | number;
 
                 playcount?:
-                    | string
-                    | number;
+                | string
+                | number;
 
                 userloved?:
-                    | string
-                    | number;
+                | string
+                | number;
 
                 toptags?: {
                     tag?:
-                        | {
-                              name?: string;
-                          }
-                        | Array<{
-                              name?: string;
-                          }>;
+                    | {
+                        name?: string;
+                    }
+                    | Array<{
+                        name?: string;
+                    }>;
                 };
             };
         };
@@ -417,51 +425,51 @@ export async function getTrackInfo(
         !rawTags
             ? []
             : (
-                  Array.isArray(
-                      rawTags
-                  )
-                      ? rawTags
-                      : [rawTags]
-              )
-                  .map(
-                      (tag) =>
-                          tag.name
-                              ?.trim()
-                  )
-                  .filter(
-                      (
-                          tag
-                      ): tag is string =>
-                          Boolean(tag)
-                  );
+                Array.isArray(
+                    rawTags
+                )
+                    ? rawTags
+                    : [rawTags]
+            )
+                .map(
+                    (tag) =>
+                        tag.name
+                            ?.trim()
+                )
+                .filter(
+                    (
+                        tag
+                    ): tag is string =>
+                        Boolean(tag)
+                );
 
     return {
         userPlaycount:
             Number(
                 data.track
                     ?.userplaycount ??
-                    0
+                0
             ),
 
         listeners:
             Number(
                 data.track
                     ?.listeners ??
-                    0
+                0
             ),
 
         globalPlaycount:
             Number(
                 data.track
                     ?.playcount ??
-                    0
+                0
             ),
 
         loved:
             String(
                 data.track
                     ?.userloved ??
-                    "0"
+                "0"
             ) === "1",
 
         tags,
@@ -495,26 +503,26 @@ export async function getArtistInfo(
 
                 stats?: {
                     listeners?:
-                        | string
-                        | number;
+                    | string
+                    | number;
 
                     playcount?:
-                        | string
-                        | number;
+                    | string
+                    | number;
 
                     userplaycount?:
-                        | string
-                        | number;
+                    | string
+                    | number;
                 };
 
                 tags?: {
                     tag?:
-                        | {
-                              name?: string;
-                          }
-                        | Array<{
-                              name?: string;
-                          }>;
+                    | {
+                        name?: string;
+                    }
+                    | Array<{
+                        name?: string;
+                    }>;
                 };
             };
         };
@@ -535,27 +543,27 @@ export async function getArtistInfo(
         !rawTags
             ? []
             : (
-                  Array.isArray(
-                      rawTags
-                  )
-                      ? rawTags
-                      : [rawTags]
-              )
-                  .map(
-                      (tag) =>
-                          tag.name
-                              ?.trim()
-                  )
-                  .filter(
-                      (
-                          tag
-                      ): tag is string =>
-                          Boolean(tag)
-                  )
-                  .slice(
-                      0,
-                      5
-                  );
+                Array.isArray(
+                    rawTags
+                )
+                    ? rawTags
+                    : [rawTags]
+            )
+                .map(
+                    (tag) =>
+                        tag.name
+                            ?.trim()
+                )
+                .filter(
+                    (
+                        tag
+                    ): tag is string =>
+                        Boolean(tag)
+                )
+                .slice(
+                    0,
+                    5
+                );
 
     return {
         name:
@@ -570,7 +578,7 @@ export async function getArtistInfo(
                 data.artist
                     .stats
                     ?.userplaycount ??
-                    0
+                0
             ),
 
         listeners:
@@ -578,13 +586,136 @@ export async function getArtistInfo(
                 data.artist
                     .stats
                     ?.listeners ??
-                    0
+                0
             ),
 
         tags,
     };
 }
+// =================================================
+// ALBUM INFO
+// =================================================
 
+export async function getAlbumInfo(
+    username: string,
+    artist: string,
+    album: string
+): Promise<AlbumInfo> {
+    const data =
+        (await requestLastFm({
+            method:
+                "album.getInfo",
+
+            username,
+
+            artist,
+
+            album,
+
+            autocorrect:
+                "1",
+        })) as {
+            album?: {
+                name?: string;
+
+                artist?: string;
+
+                url?: string;
+
+                userplaycount?:
+                | string
+                | number;
+
+                listeners?:
+                | string
+                | number;
+
+                playcount?:
+                | string
+                | number;
+
+                tags?: {
+                    tag?:
+                    | {
+                        name?: string;
+                    }
+                    | Array<{
+                        name?: string;
+                    }>;
+                };
+            };
+        };
+
+    if (!data.album?.name) {
+        throw new Error(
+            "Album information not found"
+        );
+    }
+
+    const rawTags =
+        data.album.tags?.tag;
+
+    const tags =
+        !rawTags
+            ? []
+            : (
+                Array.isArray(
+                    rawTags
+                )
+                    ? rawTags
+                    : [rawTags]
+            )
+                .map(
+                    (tag) =>
+                        tag.name
+                            ?.trim()
+                )
+                .filter(
+                    (
+                        tag
+                    ): tag is string =>
+                        Boolean(tag)
+                )
+                .slice(
+                    0,
+                    5
+                );
+
+    return {
+        name:
+            data.album.name,
+
+        artist:
+            data.album.artist ??
+            artist,
+
+        url:
+            data.album.url ?? "",
+
+        userPlaycount:
+            Number(
+                data.album
+                    .userplaycount ??
+                0
+            ),
+
+        listeners:
+            Number(
+                data.album
+                    .listeners ??
+                0
+            ),
+
+        globalPlaycount:
+            Number(
+                data.album
+                    .playcount ??
+                0
+            ),
+
+        tags,
+    };
+}
 // =================================================
 // TOP ARTISTS
 // =================================================
@@ -619,16 +750,16 @@ export async function getTopArtists(
         })) as {
             topartists?: {
                 artist?:
-                    | {
-                          name?: string;
-                          playcount?: string;
-                          url?: string;
-                      }
-                    | Array<{
-                          name?: string;
-                          playcount?: string;
-                          url?: string;
-                      }>;
+                | {
+                    name?: string;
+                    playcount?: string;
+                    url?: string;
+                }
+                | Array<{
+                    name?: string;
+                    playcount?: string;
+                    url?: string;
+                }>;
             };
         };
 
@@ -663,7 +794,7 @@ export async function getTopArtists(
                 playcount:
                     Number(
                         artist.playcount ??
-                            0
+                        0
                     ),
 
                 url:

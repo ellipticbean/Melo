@@ -1,4 +1,5 @@
 import type {
+    AlbumInfo,
     ArtistInfo,
     TrackInfo,
 } from "./lastfm.js";
@@ -10,6 +11,7 @@ import type {
 export const FM_COMPONENTS = [
     "loved",
     "artist-plays",
+    "album-plays",
     "track-plays",
     "scrobbles",
     "listeners",
@@ -82,6 +84,9 @@ export const FM_COMPONENT_LABELS:
     "artist-plays":
         "Artist plays",
 
+    "album-plays":
+        "Album plays",
+
     "track-plays":
         "Track plays",
 
@@ -147,10 +152,15 @@ type FooterPiece = {
 
 export type FmFooterData = {
     artistName: string;
+    albumName: string;
     trackName: string;
 
     artistInfo:
     | ArtistInfo
+    | null;
+
+    albumInfo:
+    | AlbumInfo
     | null;
 
     trackInfo:
@@ -282,7 +292,24 @@ function buildFooterPieces(
             size: 1,
         });
     }
+    if (
+        config.includes(
+            "album-plays"
+        ) &&
+        data.albumName
+    ) {
+        pieces.push({
+            text:
+                pluralize(
+                    data.albumInfo
+                        ?.userPlaycount ?? 0,
+                    "album scrobble",
+                    "album scrobbles"
+                ),
 
+            size: 1,
+        });
+    }
     if (
         config.includes(
             "track-plays"

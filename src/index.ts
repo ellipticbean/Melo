@@ -32,6 +32,7 @@ import {
 } from "./fmConfig.js";
 
 import {
+    getAlbumInfo,
     getArtistInfo,
     getLastFmUser as fetchLastFmUser,
     getRecentTrack,
@@ -602,10 +603,42 @@ client.on(
                     return;
                 }
 
+                const fmMode =
+                    getFmMode(
+                        userId
+                    );
+
+                let fmConfig:
+                    string[];
+
+                if (
+                    fmMode ===
+                    "custom"
+                ) {
+                    fmConfig =
+                        getFmConfig(
+                            userId
+                        );
+                } else {
+                    fmConfig =
+                        getFmPreset(
+                            fmMode
+                        ) ?? [];
+                }
+
+                const needsAlbumInfo =
+                    fmConfig.includes(
+                        "album-plays"
+                    ) &&
+                    Boolean(
+                        track.album
+                    );
+
                 const [
                     lastFmUser,
                     artistInfo,
                     trackInfo,
+                    albumInfo,
                 ] =
                     await Promise.all([
                         fetchLastFmUser(
@@ -640,6 +673,25 @@ client.on(
                                 return null;
                             }
                         ),
+
+                        needsAlbumInfo
+                            ? getAlbumInfo(
+                                username,
+                                track.artist,
+                                track.album
+                            ).catch(
+                                (error) => {
+                                    console.error(
+                                        "Could not load album info:",
+                                        error
+                                    );
+
+                                    return null;
+                                }
+                            )
+                            : Promise.resolve(
+                                null
+                            ),
                     ]);
 
                 const artistName =
@@ -659,43 +711,21 @@ client.on(
                             : ""
                     );
 
-                // ---------------------------------------------
-                // Determine which FM mode this user selected.
-                // ---------------------------------------------
-
-                const fmMode =
-                    getFmMode(
-                        userId
-                    );
-
-                let fmConfig:
-                    string[];
-
-                if (
-                    fmMode ===
-                    "custom"
-                ) {
-                    fmConfig =
-                        getFmConfig(
-                            userId
-                        );
-                } else {
-                    fmConfig =
-                        getFmPreset(
-                            fmMode
-                        ) ?? [];
-                }
-
                 const footerText =
                     renderFmFooter(
                         fmConfig,
                         {
                             artistName,
 
+                            albumName:
+                                track.album,
+
                             trackName:
                                 track.name,
 
                             artistInfo,
+
+                            albumInfo,
 
                             trackInfo,
 
@@ -773,16 +803,20 @@ client.on(
                 interaction.commandName ===
                 "npx"
             ) {
+                const userId =
+                    interaction.user.id;
+
                 const username =
                     getSavedLastFmUser(
-                        interaction.user.id
+                        userId
                     );
 
                 if (!username) {
                     await interaction.reply({
                         content:
                             "You haven't linked a Last.fm account yet. Use `/setuser username:` first.",
-                        flags: MessageFlags.Ephemeral,
+                        flags:
+                            MessageFlags.Ephemeral,
                     });
 
                     return;
@@ -803,10 +837,24 @@ client.on(
                     return;
                 }
 
+                const fmConfig =
+                    getFmConfig(
+                        userId
+                    );
+
+                const needsAlbumInfo =
+                    fmConfig.includes(
+                        "album-plays"
+                    ) &&
+                    Boolean(
+                        track.album
+                    );
+
                 const [
                     lastFmUser,
                     artistInfo,
                     trackInfo,
+                    albumInfo,
                 ] =
                     await Promise.all([
                         fetchLastFmUser(
@@ -841,6 +889,25 @@ client.on(
                                 return null;
                             }
                         ),
+
+                        needsAlbumInfo
+                            ? getAlbumInfo(
+                                username,
+                                track.artist,
+                                track.album
+                            ).catch(
+                                (error) => {
+                                    console.error(
+                                        "Could not load album info:",
+                                        error
+                                    );
+
+                                    return null;
+                                }
+                            )
+                            : Promise.resolve(
+                                null
+                            ),
                     ]);
 
                 const artistName =
@@ -860,23 +927,21 @@ client.on(
                             : ""
                     );
 
-                // Load this Discord user's saved
-                // custom FM configuration.
-                const fmConfig =
-                    getFmConfig(
-                        interaction.user.id
-                    );
-
                 const footerText =
                     renderFmFooter(
                         fmConfig,
                         {
                             artistName,
 
+                            albumName:
+                                track.album,
+
                             trackName:
                                 track.name,
 
                             artistInfo,
+
+                            albumInfo,
 
                             trackInfo,
 
@@ -1234,10 +1299,19 @@ client.on(
                         return;
                     }
 
+                    const needsAlbumInfo =
+                        valid.includes(
+                            "album-plays"
+                        ) &&
+                        Boolean(
+                            track.album
+                        );
+
                     const [
                         lastFmUser,
                         artistInfo,
                         trackInfo,
+                        albumInfo,
                     ] =
                         await Promise.all([
                             fetchLastFmUser(
@@ -1272,6 +1346,25 @@ client.on(
                                     return null;
                                 }
                             ),
+
+                            needsAlbumInfo
+                                ? getAlbumInfo(
+                                    username,
+                                    track.artist,
+                                    track.album
+                                ).catch(
+                                    (error) => {
+                                        console.error(
+                                            "Could not load album info:",
+                                            error
+                                        );
+
+                                        return null;
+                                    }
+                                )
+                                : Promise.resolve(
+                                    null
+                                ),
                         ]);
 
                     const artistName =
@@ -1297,10 +1390,15 @@ client.on(
                             {
                                 artistName,
 
+                                albumName:
+                                    track.album,
+
                                 trackName:
                                     track.name,
 
                                 artistInfo,
+
+                                albumInfo,
 
                                 trackInfo,
 
