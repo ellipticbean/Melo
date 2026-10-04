@@ -5,15 +5,25 @@ import {
     EmbedBuilder,
     Events,
     GatewayIntentBits,
+    MessageFlags,
     REST,
     Routes,
     SlashCommandBuilder,
 } from "discord.js";
 
 import {
+    getFmConfig,
     getLastFmUser as getSavedLastFmUser,
+    resetFmConfig,
+    saveFmConfig,
     saveLastFmUser,
 } from "./database.js";
+
+import {
+    FM_COMPONENTS,
+    normalizeFmConfig,
+    renderFmFooter,
+} from "./fmConfig.js";
 
 import {
     getArtistInfo,
@@ -21,6 +31,7 @@ import {
     getRecentTrack,
     getRecentTracks,
     getTopArtists,
+    getTrackInfo,
     type TopArtistPeriod,
 } from "./lastfm.js";
 
@@ -72,7 +83,21 @@ function pluralize(
         `${amount === 1 ? singular : plural}`
     );
 }
-
+function parseFmOptions(
+    input: string
+): string[] {
+    return input
+        .split(
+            /[\s,]+/
+        )
+        .map(
+            (item) =>
+                item
+                    .trim()
+                    .toLowerCase()
+        )
+        .filter(Boolean);
+}
 const token =
     requireEnv("DISCORD_TOKEN");
 
@@ -126,6 +151,111 @@ const commands = [
         .setDescription(
             "Display your now playing or last played track."
         )
+        .toJSON(),
+    new SlashCommandBuilder()
+        .setName("fmx")
+        .setDescription(
+            "Display your custom now playing or last played track."
+        )
+        .toJSON(),
+
+    new SlashCommandBuilder()
+        .setName("npx")
+        .setDescription(
+            "Display your custom now playing or last played track."
+        )
+        .toJSON(),
+
+    new SlashCommandBuilder()
+        .setName("npc")
+        .setDescription(
+            "Customize your Melo now-playing footer."
+        )
+
+        .addSubcommand(
+            (subcommand) =>
+                subcommand
+                    .setName("view")
+                    .setDescription(
+                        "View your current FM configuration."
+                    )
+        )
+
+        .addSubcommand(
+            (subcommand) =>
+                subcommand
+                    .setName("set")
+                    .setDescription(
+                        "Replace your FM configuration."
+                    )
+                    .addStringOption(
+                        (option) =>
+                            option
+                                .setName(
+                                    "options"
+                                )
+                                .setDescription(
+                                    "Example: loved artist-plays track-plays artist-tags"
+                                )
+                                .setRequired(
+                                    true
+                                )
+                    )
+        )
+
+        .addSubcommand(
+            (subcommand) =>
+                subcommand
+                    .setName("add")
+                    .setDescription(
+                        "Add options to your FM configuration."
+                    )
+                    .addStringOption(
+                        (option) =>
+                            option
+                                .setName(
+                                    "options"
+                                )
+                                .setDescription(
+                                    "Options to add"
+                                )
+                                .setRequired(
+                                    true
+                                )
+                    )
+        )
+
+        .addSubcommand(
+            (subcommand) =>
+                subcommand
+                    .setName("remove")
+                    .setDescription(
+                        "Remove options from your FM configuration."
+                    )
+                    .addStringOption(
+                        (option) =>
+                            option
+                                .setName(
+                                    "options"
+                                )
+                                .setDescription(
+                                    "Options to remove"
+                                )
+                                .setRequired(
+                                    true
+                                )
+                    )
+        )
+
+        .addSubcommand(
+            (subcommand) =>
+                subcommand
+                    .setName("reset")
+                    .setDescription(
+                        "Reset your FM configuration to Melo's default."
+                    )
+        )
+
         .toJSON(),
 
     new SlashCommandBuilder()
@@ -280,7 +410,7 @@ client.on(
                         .trim();
 
                 await interaction.deferReply({
-                    ephemeral: true,
+                    flags: MessageFlags.Ephemeral,
                 });
 
                 const lastFmUser =
@@ -323,7 +453,7 @@ client.on(
                     await interaction.reply({
                         content:
                             "You haven't linked a Last.fm account yet. Use `/setuser username:` first.",
-                        ephemeral: true,
+                        flags: MessageFlags.Ephemeral,
                     });
 
                     return;
@@ -373,9 +503,9 @@ client.on(
 
             if (
                 interaction.commandName ===
-                    "fm" ||
+                "fm" ||
                 interaction.commandName ===
-                    "np"
+                "np"
             ) {
                 const username =
                     getSavedLastFmUser(
@@ -386,7 +516,7 @@ client.on(
                     await interaction.reply({
                         content:
                             "You haven't linked a Last.fm account yet. Use `/setuser username:` first.",
-                        ephemeral: true,
+                        flags: MessageFlags.Ephemeral,
                     });
 
                     return;
@@ -511,15 +641,15 @@ client.on(
                         .setAuthor(
                             lastFmUser.url
                                 ? {
-                                      name:
-                                          status,
-                                      url:
-                                          lastFmUser.url,
-                                  }
+                                    name:
+                                        status,
+                                    url:
+                                        lastFmUser.url,
+                                }
                                 : {
-                                      name:
-                                          status,
-                                  }
+                                    name:
+                                        status,
+                                }
                         )
                         .setTitle(
                             track.name
@@ -552,7 +682,460 @@ client.on(
 
                 return;
             }
+            // =================================================
+            // /fmx + /npx
+            // =================================================
 
+            if (
+                interaction.commandName ===
+                "fmx" ||
+                interaction.commandName ===
+                "npx"
+            ) {
+                const username =
+                    getSavedLastFmUser(
+                        interaction.user.id
+                    );
+
+                if (!username) {
+                    await interaction.reply({
+                        content:
+                            "You haven't linked a Last.fm account yet. Use `/setuser username:` first.",
+                        flags: MessageFlags.Ephemeral,
+                    });
+
+                    return;
+                }
+
+                await interaction.deferReply();
+
+                const track =
+                    await getRecentTrack(
+                        username
+                    );
+
+                if (!track) {
+                    await interaction.editReply(
+                        `I couldn't find any recent tracks for **${username}**.`
+                    );
+
+                    return;
+                }
+
+                const [
+                    lastFmUser,
+                    artistInfo,
+                    trackInfo,
+                ] =
+                    await Promise.all([
+                        fetchLastFmUser(
+                            username
+                        ),
+
+                        getArtistInfo(
+                            username,
+                            track.artist
+                        ).catch(
+                            (error) => {
+                                console.error(
+                                    "Could not load artist info:",
+                                    error
+                                );
+
+                                return null;
+                            }
+                        ),
+
+                        getTrackInfo(
+                            username,
+                            track.artist,
+                            track.name
+                        ).catch(
+                            (error) => {
+                                console.error(
+                                    "Could not load track info:",
+                                    error
+                                );
+
+                                return null;
+                            }
+                        ),
+                    ]);
+
+                const artistName =
+                    artistInfo?.name ??
+                    track.artist;
+
+                const artistDisplay =
+                    artistInfo?.url
+                        ? `[**${artistName}**](${artistInfo.url})`
+                        : `**${artistName}**`;
+
+                const description =
+                    `by ${artistDisplay}` +
+                    (
+                        track.album
+                            ? ` from *${track.album}*`
+                            : ""
+                    );
+
+                // Load this Discord user's saved
+                // custom FM configuration.
+                const fmConfig =
+                    getFmConfig(
+                        interaction.user.id
+                    );
+
+                const footerText =
+                    renderFmFooter(
+                        fmConfig,
+                        {
+                            artistName,
+
+                            trackName:
+                                track.name,
+
+                            artistInfo,
+
+                            trackInfo,
+
+                            totalScrobbles:
+                                Number(
+                                    lastFmUser.playcount
+                                ),
+                        }
+                    );
+
+                const status =
+                    track.nowPlaying
+                        ? `Now playing for ${username}`
+                        : `Last scrobbled for ${username}`;
+
+                const embed =
+                    new EmbedBuilder()
+                        .setColor(
+                            0x000000
+                        )
+                        .setAuthor(
+                            lastFmUser.url
+                                ? {
+                                    name:
+                                        status,
+                                    url:
+                                        lastFmUser.url,
+                                }
+                                : {
+                                    name:
+                                        status,
+                                }
+                        )
+                        .setTitle(
+                            track.name
+                        )
+                        .setDescription(
+                            description
+                        );
+
+                if (track.url) {
+                    embed.setURL(
+                        track.url
+                    );
+                }
+
+                if (track.imageUrl) {
+                    embed.setThumbnail(
+                        track.imageUrl
+                    );
+                }
+
+                if (footerText) {
+                    embed.setFooter({
+                        text:
+                            footerText,
+                    });
+                }
+
+                await interaction.editReply({
+                    embeds: [
+                        embed,
+                    ],
+                });
+
+                return;
+            }
+            // =================================================
+            // /npc
+            // =================================================
+
+            if (
+                interaction.commandName ===
+                "npc"
+            ) {
+                const subcommand =
+                    interaction.options
+                        .getSubcommand();
+
+                const userId =
+                    interaction.user.id;
+
+                // ---------------------------------------------
+                // /npc view
+                // ---------------------------------------------
+
+                if (
+                    subcommand ===
+                    "view"
+                ) {
+                    const config =
+                        getFmConfig(
+                            userId
+                        );
+
+                    const display =
+                        config.length > 0
+                            ? config
+                                .map(
+                                    (component) =>
+                                        `\`${component}\``
+                                )
+                                .join(", ")
+                            : "*Empty configuration*";
+
+                    const embed =
+                        new EmbedBuilder()
+                            .setColor(
+                                0x000000
+                            )
+                            .setTitle(
+                                "Your now-playing config"
+                            )
+                            .setDescription(
+                                display
+                            )
+                            .setFooter({
+                                text:
+                                    "This configuration is used by /fmx and /npx.",
+                            });
+
+                    await interaction.reply({
+                        embeds: [
+                            embed,
+                        ],
+                        flags: MessageFlags.Ephemeral,
+                    });
+
+                    return;
+                }
+
+                // ---------------------------------------------
+                // /npc reset
+                // ---------------------------------------------
+
+                if (
+                    subcommand ===
+                    "reset"
+                ) {
+                    resetFmConfig(
+                        userId
+                    );
+
+                    const config =
+                        getFmConfig(
+                            userId
+                        );
+
+                    await interaction.reply({
+                        content:
+                            "Reset your FM configuration to:\n" +
+                            config
+                                .map(
+                                    (component) =>
+                                        `\`${component}\``
+                                )
+                                .join(", "),
+                        flags: MessageFlags.Ephemeral,
+                    });
+
+                    return;
+                }
+
+                const rawInput =
+                    interaction.options
+                        .getString(
+                            "options",
+                            true
+                        );
+
+                const parsed =
+                    parseFmOptions(
+                        rawInput
+                    );
+
+                const valid =
+                    normalizeFmConfig(
+                        parsed
+                    );
+
+                const invalid =
+                    parsed.filter(
+                        (option) =>
+                            !(
+                                FM_COMPONENTS as readonly string[]
+                            ).includes(option)
+                    );
+
+                if (
+                    invalid.length > 0
+                ) {
+                    await interaction.reply({
+                        content:
+                            "Unknown FM option" +
+                            (
+                                invalid.length === 1
+                                    ? ""
+                                    : "s"
+                            ) +
+                            ": " +
+                            invalid
+                                .map(
+                                    (option) =>
+                                        `\`${option}\``
+                                )
+                                .join(", ") +
+                            "\n\nAvailable options:\n" +
+                            FM_COMPONENTS
+                                .map(
+                                    (component) =>
+                                        `\`${component}\``
+                                )
+                                .join(", "),
+                        flags: MessageFlags.Ephemeral,
+                    });
+
+                    return;
+                }
+
+                // ---------------------------------------------
+                // /npc set
+                // ---------------------------------------------
+
+                if (
+                    subcommand ===
+                    "set"
+                ) {
+                    saveFmConfig(
+                        userId,
+                        valid
+                    );
+
+                    await interaction.reply({
+                        content:
+                            "Your new FM configuration is:\n" +
+                            (
+                                valid.length > 0
+                                    ? valid
+                                        .map(
+                                            (component) =>
+                                                `\`${component}\``
+                                        )
+                                        .join(", ")
+                                    : "*Empty configuration*"
+                            ),
+                        flags: MessageFlags.Ephemeral,
+                    });
+
+                    return;
+                }
+
+                // ---------------------------------------------
+                // /npc add
+                // ---------------------------------------------
+
+                if (
+                    subcommand ===
+                    "add"
+                ) {
+                    const current =
+                        getFmConfig(
+                            userId
+                        );
+
+                    const updated =
+                        normalizeFmConfig([
+                            ...current,
+                            ...valid,
+                        ]);
+
+                    saveFmConfig(
+                        userId,
+                        updated
+                    );
+
+                    await interaction.reply({
+                        content:
+                            "Your new FM configuration is:\n" +
+                            updated
+                                .map(
+                                    (component) =>
+                                        `\`${component}\``
+                                )
+                                .join(", "),
+                        flags: MessageFlags.Ephemeral,
+                    });
+
+                    return;
+                }
+
+                // ---------------------------------------------
+                // /npc remove
+                // ---------------------------------------------
+
+                if (
+                    subcommand ===
+                    "remove"
+                ) {
+                    const current =
+                        getFmConfig(
+                            userId
+                        );
+
+                    const removeSet =
+                        new Set(
+                            valid
+                        );
+
+                    const updated =
+                        current.filter(
+                            (component) =>
+                                !removeSet.has(
+                                    component as never
+                                )
+                        );
+
+                    saveFmConfig(
+                        userId,
+                        updated
+                    );
+
+                    await interaction.reply({
+                        content:
+                            "Your new FM configuration is:\n" +
+                            (
+                                updated.length > 0
+                                    ? updated
+                                        .map(
+                                            (component) =>
+                                                `\`${component}\``
+                                        )
+                                        .join(", ")
+                                    : "*Empty configuration*"
+                            ),
+                        flags: MessageFlags.Ephemeral,
+                    });
+
+                    return;
+                }
+            }
             // =================================================
             // /recent
             // =================================================
@@ -570,7 +1153,7 @@ client.on(
                     await interaction.reply({
                         content:
                             "You haven't linked a Last.fm account yet. Use `/setuser username:` first.",
-                        ephemeral: true,
+                        flags: MessageFlags.Ephemeral,
                     });
 
                     return;
@@ -704,7 +1287,7 @@ client.on(
                     await interaction.reply({
                         content:
                             "You haven't linked a Last.fm account yet. Use `/setuser username:` first.",
-                        ephemeral: true,
+                        flags: MessageFlags.Ephemeral,
                     });
 
                     return;
@@ -811,7 +1394,7 @@ client.on(
                 await interaction.reply({
                     content:
                         `Last.fm error: ${message}`,
-                    ephemeral: true,
+                    flags: MessageFlags.Ephemeral,
                 });
             }
         }

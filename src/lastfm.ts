@@ -17,7 +17,8 @@ function requireApiKey(): string {
 async function requestLastFm(
     params: Record<string, string>
 ) {
-    const apiKey = requireApiKey();
+    const apiKey =
+        requireApiKey();
 
     const url =
         new URL(API_ROOT);
@@ -42,12 +43,16 @@ async function requestLastFm(
         "json"
     );
 
-    const response = await fetch(url, {
-        headers: {
-            "User-Agent":
-                "Melo Discord Bot/1.0",
-        },
-    });
+    const response =
+        await fetch(
+            url,
+            {
+                headers: {
+                    "User-Agent":
+                        "Melo Discord Bot/1.0",
+                },
+            }
+        );
 
     if (!response.ok) {
         throw new Error(
@@ -71,12 +76,16 @@ async function requestLastFm(
 
         throw new Error(
             errorData.message ??
-            "Last.fm returned an error"
+                "Last.fm returned an error"
         );
     }
 
     return data;
 }
+
+// =================================================
+// TYPES
+// =================================================
 
 export type LastFmUser = {
     name: string;
@@ -98,12 +107,15 @@ export type TrackInfo = {
     userPlaycount: number;
     listeners: number;
     globalPlaycount: number;
+    loved: boolean;
+    tags: string[];
 };
 
 export type ArtistInfo = {
     name: string;
     url: string;
     userPlaycount: number;
+    listeners: number;
     tags: string[];
 };
 
@@ -125,17 +137,17 @@ type RawRecentTrack = {
     name?: string;
 
     artist?:
-    | string
-    | {
-        name?: string;
-        "#text"?: string;
-    };
+        | string
+        | {
+              name?: string;
+              "#text"?: string;
+          };
 
     album?:
-    | string
-    | {
-        "#text"?: string;
-    };
+        | string
+        | {
+              "#text"?: string;
+          };
 
     url?: string;
 
@@ -153,6 +165,10 @@ type RawRecentTrack = {
     };
 };
 
+// =================================================
+// RECENT TRACK PARSER
+// =================================================
+
 function parseRecentTrack(
     track: RawRecentTrack
 ): RecentTrack | null {
@@ -161,17 +177,22 @@ function parseRecentTrack(
     }
 
     const artist =
-        typeof track.artist === "string"
+        typeof track.artist ===
+        "string"
             ? track.artist
             : track.artist?.name ??
-            track.artist?.["#text"] ??
-            "Unknown Artist";
+              track.artist?.[
+                  "#text"
+              ] ??
+              "Unknown Artist";
 
     const album =
-        typeof track.album === "string"
+        typeof track.album ===
+        "string"
             ? track.album
-            : track.album?.["#text"] ??
-            "";
+            : track.album?.[
+                  "#text"
+              ] ?? "";
 
     const image =
         track.image
@@ -182,14 +203,15 @@ function parseRecentTrack(
             .at(-1)?.["#text"];
 
     const nowPlaying =
-        track["@attr"]?.nowplaying ===
+        track["@attr"]
+            ?.nowplaying ===
         "true";
 
     const timestamp =
         track.date?.uts
             ? Number(
-                track.date.uts
-            )
+                  track.date.uts
+              )
             : null;
 
     return {
@@ -205,7 +227,7 @@ function parseRecentTrack(
 
         imageUrl:
             image &&
-                image.length > 0
+            image.length > 0
                 ? image
                 : null,
 
@@ -215,13 +237,20 @@ function parseRecentTrack(
     };
 }
 
+// =================================================
+// USER
+// =================================================
+
 export async function getLastFmUser(
     username: string
 ): Promise<LastFmUser> {
     const data =
         (await requestLastFm({
-            method: "user.getInfo",
-            user: username,
+            method:
+                "user.getInfo",
+
+            user:
+                username,
         })) as {
             user?: {
                 name?: string;
@@ -244,9 +273,14 @@ export async function getLastFmUser(
             data.user.url ?? "",
 
         playcount:
-            data.user.playcount ?? "0",
+            data.user.playcount ??
+            "0",
     };
 }
+
+// =================================================
+// RECENT TRACKS
+// =================================================
 
 export async function getRecentTracks(
     username: string,
@@ -277,8 +311,8 @@ export async function getRecentTracks(
         })) as {
             recenttracks?: {
                 track?:
-                | RawRecentTrack
-                | RawRecentTrack[];
+                    | RawRecentTrack
+                    | RawRecentTrack[];
             };
         };
 
@@ -290,7 +324,9 @@ export async function getRecentTracks(
     }
 
     const tracks =
-        Array.isArray(rawTracks)
+        Array.isArray(
+            rawTracks
+        )
             ? rawTracks
             : [rawTracks];
 
@@ -315,8 +351,15 @@ export async function getRecentTrack(
             1
         );
 
-    return tracks[0] ?? null;
+    return (
+        tracks[0] ??
+        null
+    );
 }
+
+// =================================================
+// TRACK INFO
+// =================================================
 
 export async function getTrackInfo(
     username: string,
@@ -339,39 +382,95 @@ export async function getTrackInfo(
         })) as {
             track?: {
                 userplaycount?:
-                | string
-                | number;
+                    | string
+                    | number;
 
                 listeners?:
-                | string
-                | number;
+                    | string
+                    | number;
 
                 playcount?:
-                | string
-                | number;
+                    | string
+                    | number;
+
+                userloved?:
+                    | string
+                    | number;
+
+                toptags?: {
+                    tag?:
+                        | {
+                              name?: string;
+                          }
+                        | Array<{
+                              name?: string;
+                          }>;
+                };
             };
         };
+
+    const rawTags =
+        data.track
+            ?.toptags?.tag;
+
+    const tags =
+        !rawTags
+            ? []
+            : (
+                  Array.isArray(
+                      rawTags
+                  )
+                      ? rawTags
+                      : [rawTags]
+              )
+                  .map(
+                      (tag) =>
+                          tag.name
+                              ?.trim()
+                  )
+                  .filter(
+                      (
+                          tag
+                      ): tag is string =>
+                          Boolean(tag)
+                  );
 
     return {
         userPlaycount:
             Number(
                 data.track
-                    ?.userplaycount ?? 0
+                    ?.userplaycount ??
+                    0
             ),
 
         listeners:
             Number(
                 data.track
-                    ?.listeners ?? 0
+                    ?.listeners ??
+                    0
             ),
 
         globalPlaycount:
             Number(
                 data.track
-                    ?.playcount ?? 0
+                    ?.playcount ??
+                    0
             ),
+
+        loved:
+            String(
+                data.track
+                    ?.userloved ??
+                    "0"
+            ) === "1",
+
+        tags,
     };
 }
+
+// =================================================
+// ARTIST INFO
+// =================================================
 
 export async function getArtistInfo(
     username: string,
@@ -420,20 +519,25 @@ export async function getArtistInfo(
             };
         };
 
-    if (!data.artist?.name) {
+    if (
+        !data.artist?.name
+    ) {
         throw new Error(
             "Artist information not found"
         );
     }
 
     const rawTags =
-        data.artist.tags?.tag;
+        data.artist
+            .tags?.tag;
 
     const tags =
         !rawTags
             ? []
             : (
-                  Array.isArray(rawTags)
+                  Array.isArray(
+                      rawTags
+                  )
                       ? rawTags
                       : [rawTags]
               )
@@ -458,21 +562,37 @@ export async function getArtistInfo(
             data.artist.name,
 
         url:
-            data.artist.url ?? "",
+            data.artist.url ??
+            "",
 
         userPlaycount:
             Number(
                 data.artist
                     .stats
-                    ?.userplaycount ?? 0
+                    ?.userplaycount ??
+                    0
+            ),
+
+        listeners:
+            Number(
+                data.artist
+                    .stats
+                    ?.listeners ??
+                    0
             ),
 
         tags,
     };
 }
+
+// =================================================
+// TOP ARTISTS
+// =================================================
+
 export async function getTopArtists(
     username: string,
-    period: TopArtistPeriod = "7day",
+    period: TopArtistPeriod =
+        "7day",
     limit = 10
 ): Promise<TopArtist[]> {
     const safeLimit =
@@ -499,28 +619,31 @@ export async function getTopArtists(
         })) as {
             topartists?: {
                 artist?:
-                | {
-                    name?: string;
-                    playcount?: string;
-                    url?: string;
-                }
-                | Array<{
-                    name?: string;
-                    playcount?: string;
-                    url?: string;
-                }>;
+                    | {
+                          name?: string;
+                          playcount?: string;
+                          url?: string;
+                      }
+                    | Array<{
+                          name?: string;
+                          playcount?: string;
+                          url?: string;
+                      }>;
             };
         };
 
     const rawArtists =
-        data.topartists?.artist;
+        data.topartists
+            ?.artist;
 
     if (!rawArtists) {
         return [];
     }
 
     const artists =
-        Array.isArray(rawArtists)
+        Array.isArray(
+            rawArtists
+        )
             ? rawArtists
             : [rawArtists];
 
@@ -540,11 +663,12 @@ export async function getTopArtists(
                 playcount:
                     Number(
                         artist.playcount ??
-                        0
+                            0
                     ),
 
                 url:
-                    artist.url ?? "",
+                    artist.url ??
+                    "",
             })
         );
 }
