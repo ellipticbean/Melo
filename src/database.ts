@@ -99,6 +99,14 @@ const getUserStatement =
         WHERE discord_user_id = ?
     `);
 
+const getAllUsersStatement =
+    database.prepare(`
+        SELECT
+            discord_user_id,
+            lastfm_username
+        FROM users
+    `);
+
 const saveFmConfigStatement =
     database.prepare(`
         INSERT INTO fm_configs (
@@ -181,7 +189,29 @@ export function getLastFmUser(
         null
     );
 }
+export type LinkedLastFmUser = {
+    discordUserId: string;
+    lastFmUsername: string;
+};
 
+export function getAllLastFmUsers():
+    LinkedLastFmUser[] {
+    const rows =
+        getAllUsersStatement.all() as Array<{
+            discord_user_id: string;
+            lastfm_username: string;
+        }>;
+
+    return rows.map(
+        (row) => ({
+            discordUserId:
+                row.discord_user_id,
+
+            lastFmUsername:
+                row.lastfm_username,
+        })
+    );
+}
 // =================================================
 // CUSTOM FM CONFIG FUNCTIONS
 // =================================================
@@ -283,21 +313,21 @@ export function getFmMode(
         | undefined;
 
     if (
-    row?.fm_mode ===
+        row?.fm_mode ===
         "default" ||
-    row?.fm_mode ===
+        row?.fm_mode ===
         "verbose" ||
-    row?.fm_mode ===
+        row?.fm_mode ===
         "custom" ||
-    row?.fm_mode ===
+        row?.fm_mode ===
         "album" ||
-    row?.fm_mode ===
+        row?.fm_mode ===
         "compact" ||
-    row?.fm_mode ===
+        row?.fm_mode ===
         "combo"
-) {
-    return row.fm_mode;
-}
+    ) {
+        return row.fm_mode;
+    }
 
     return DEFAULT_FM_MODE;
 }

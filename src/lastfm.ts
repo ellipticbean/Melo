@@ -840,6 +840,42 @@ export async function getArtistInfo(
     };
 }
 // =================================================
+// USER ARTIST PLAYCOUNT
+// =================================================
+
+export async function getUserArtistPlaycount(
+    username: string,
+    artist: string
+): Promise<number> {
+    const data =
+        (await requestLastFm({
+            method:
+                "artist.getInfo",
+
+            username,
+
+            artist,
+
+            autocorrect:
+                "1",
+        })) as {
+            artist?: {
+                stats?: {
+                    userplaycount?:
+                        | string
+                        | number;
+                };
+            };
+        };
+
+    return Number(
+        data.artist
+            ?.stats
+            ?.userplaycount ??
+            0
+    );
+}
+// =================================================
 // ALBUM INFO
 // =================================================
 

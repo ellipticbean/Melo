@@ -12,6 +12,7 @@ import {
 } from "discord.js";
 
 import {
+    getAllLastFmUsers,
     getFmConfig,
     getFmMode,
     getLastFmUser as getSavedLastFmUser,
@@ -45,6 +46,7 @@ import {
     getTopArtists,
     getTopTracks,
     getTrackInfo,
+    getUserArtistPlaycount,
     type TopArtistPeriod,
 } from "./lastfm.js";
 
@@ -176,6 +178,51 @@ const commands = [
         .setName("npx")
         .setDescription(
             "Display your custom now playing or last played track."
+        )
+        .toJSON(),
+
+    new SlashCommandBuilder()
+        .setName("wk")
+        .setDescription(
+            "Show who has scrobbled an artist in this server."
+        )
+        .addStringOption((option) =>
+            option
+                .setName("artist")
+                .setDescription(
+                    "Artist name; leave blank to use your current artist"
+                )
+                .setRequired(false)
+        )
+        .toJSON(),
+
+    new SlashCommandBuilder()
+        .setName("fmwk")
+        .setDescription(
+            "Show who has scrobbled an artist in this server."
+        )
+        .addStringOption((option) =>
+            option
+                .setName("artist")
+                .setDescription(
+                    "Artist name; leave blank to use your current artist"
+                )
+                .setRequired(false)
+        )
+        .toJSON(),
+
+    new SlashCommandBuilder()
+        .setName("whoknows")
+        .setDescription(
+            "Show who has scrobbled an artist in this server."
+        )
+        .addStringOption((option) =>
+            option
+                .setName("artist")
+                .setDescription(
+                    "Artist name; leave blank to use your current artist"
+                )
+                .setRequired(false)
         )
         .toJSON(),
 
@@ -586,6 +633,7 @@ const client =
     new Client({
         intents: [
             GatewayIntentBits.Guilds,
+            GatewayIntentBits.GuildMembers,
         ],
     });
 
@@ -597,7 +645,15 @@ client.once(
         );
     }
 );
-
+client.on(
+    "error",
+    (error) => {
+        console.error(
+            "Discord client error:",
+            error
+        );
+    }
+);
 client.on(
     Events.InteractionCreate,
     async (interaction) => {
@@ -894,9 +950,9 @@ client.on(
 
                 const needsCombo =
                     interaction.commandName !==
-                        "fmc" &&
+                    "fmc" &&
                     fmMode ===
-                        "combo";
+                    "combo";
 
                 const [
                     lastFmUser,
@@ -2730,12 +2786,316 @@ client.on(
                 });
             }
         }
+        // =================================================
+        // /wk + /fmwk + /whoknows
+        // =================================================
+
+        if (
+            interaction.commandName ===
+            "wk" ||
+            interaction.commandName ===
+            "fmwk" ||
+            interaction.commandName ===
+            "whoknows"
+        ) {
+            if (!interaction.guild) {
+                await interaction.reply({
+                    content:
+                        "Who Knows can only be used inside a Discord server.",
+                    flags:
+                        MessageFlags.Ephemeral,
+                });
+
+                return;
+            }
+
+            await interaction.deferReply();
+
+            let artist =
+                interaction.options
+                    .getString(
+                        "artist"
+                    )
+                    ?.trim() ??
+                "";
+
+            // If no artist was supplied,
+            // use the requesting user's current/recent artist.
+            if (!artist) {
+                const username =
+                    getSavedLastFmUser(
+                        interaction.user.id
+                    );
+
+                if (!username) {
+                    await interaction.editReply(
+                        "You haven't linked a Last.fm account yet. " +
+                        "Use `/setuser username:` first, or provide an `artist:`."
+                    );
+
+                    return;
+                }
+
+                const track =
+                    await getRecentTrack(
+                        username
+                    );
+
+                if (!track) {
+                    await interaction.editReply(
+                        `I couldn't find any recent tracks for **${username}**.`
+                    );
+
+                    return;
+                }
+
+                artist =
+                    track.artist;
+            }
+
+            // Only check people who have actually linked
+            // a Last.fm account to Melo.
+            //
+            // We deliberately do NOT fetch the entire guild here.
+            // Fetching every member uses Discord Gateway opcode 8
+            // and can be rate-limited when /wk is used repeatedly.
+
+            const linkedUsers =
+                getAllLastFmUsers();
+
+            const serverUsers:
+                typeof linkedUsers = [];
+
+            const memberDisplayNames =
+                new Map<
+                    string,
+                    string
+                >();
+
+            for (
+                const linkedUser
+                of linkedUsers
+            ) {
+                let member =
+                    interaction.guild
+                        .members
+                        .cache
+                        .get(
+                            linkedUser
+                                .discordUserId
+                        );
+
+                if (!member) {
+                    try {
+                        member =
+                            await interaction.guild
+                                .members
+                                .fetch(
+                                    linkedUser
+                                        .discordUserId
+                                );
+                    } catch {
+                        // The linked user is not currently
+                        // in this Discord server.
+                        continue;
+                    }
+                }
+
+                serverUsers.push(
+                    linkedUser
+                );
+
+                memberDisplayNames.set(
+                    linkedUser.discordUserId,
+                    member.displayName
+                );
+            }
+
+            if (
+                serverUsers.length === 0
+            ) {
+                await interaction.editReply(
+                    "No one in this server has linked a Last.fm account to Melo yet."
+                );
+
+                return;
+            }
+
+            const results:
+                Array<{
+                    discordUserId: string;
+                    lastFmUsername: string;
+                    playcount: number;
+                }> = [];
+
+            // Keep concurrency modest so Who Knows
+            // doesn't hammer Last.fm all at once.
+            const batchSize = 5;
+
+            for (
+                let index = 0;
+                index < serverUsers.length;
+                index += batchSize
+            ) {
+                const batch =
+                    serverUsers.slice(
+                        index,
+                        index +
+                        batchSize
+                    );
+
+                const batchResults =
+                    await Promise.all(
+                        batch.map(
+                            async (
+                                linkedUser
+                            ) => {
+                                try {
+                                    const playcount =
+                                        await getUserArtistPlaycount(
+                                            linkedUser.lastFmUsername,
+                                            artist
+                                        );
+
+                                    return {
+                                        discordUserId:
+                                            linkedUser.discordUserId,
+
+                                        lastFmUsername:
+                                            linkedUser.lastFmUsername,
+
+                                        playcount,
+                                    };
+                                } catch (
+                                error
+                                ) {
+                                    console.error(
+                                        `Could not load artist plays for ${linkedUser.lastFmUsername}:`,
+                                        error
+                                    );
+
+                                    return null;
+                                }
+                            }
+                        )
+                    );
+
+                for (
+                    const result
+                    of batchResults
+                ) {
+                    if (
+                        result &&
+                        result.playcount > 0
+                    ) {
+                        results.push(
+                            result
+                        );
+                    }
+                }
+            }
+
+            results.sort(
+                (
+                    first,
+                    second
+                ) =>
+                    second.playcount -
+                    first.playcount
+            );
+
+            if (
+                results.length === 0
+            ) {
+                const embed =
+                    new EmbedBuilder()
+                        .setColor(
+                            0x000000
+                        )
+                        .setTitle(
+                            `Who knows ${artist} in ${interaction.guild.name}?`
+                        )
+                        .setDescription(
+                            "No one knows this artist."
+                        );
+
+                await interaction.editReply({
+                    embeds: [
+                        embed,
+                    ],
+                });
+
+                return;
+            }
+
+            const topResults =
+                results.slice(
+                    0,
+                    15
+                );
+
+            const lines =
+                topResults.map(
+                    (
+                        result,
+                        index
+                    ) => {
+                        const displayName =
+                            memberDisplayNames.get(
+                                result.discordUserId
+                            ) ??
+                            result.lastFmUsername;
+
+                        const plays =
+                            pluralize(
+                                result.playcount,
+                                "play"
+                            );
+
+                        return (
+                            `\`${index + 1}.\` ` +
+                            `**${displayName}** - ${plays}`
+                        );
+                    }
+                );
+
+            const embed =
+                new EmbedBuilder()
+                    .setColor(
+                        0x000000
+                    )
+                    .setTitle(
+                        `Who knows ${artist} in ${interaction.guild.name}?`
+                    )
+                    .setDescription(
+                        lines.join(
+                            "\n"
+                        )
+                    )
+                    .setFooter({
+                        text:
+                            pluralize(
+                                results.length,
+                                "server listener"
+                            ),
+                    });
+
+            await interaction.editReply({
+                embeds: [
+                    embed,
+                ],
+            });
+
+            return;
+        }
     }
+
 );
 
 await registerCommands();
 
 await client.login(
     token
-    
+
+
 );
