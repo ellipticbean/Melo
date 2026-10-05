@@ -14,6 +14,27 @@ function requireApiKey(): string {
     return apiKey;
 }
 
+const RETRYABLE_STATUS_CODES =
+    new Set([
+        500,
+        502,
+        503,
+        504,
+    ]);
+
+function delay(
+    milliseconds: number
+): Promise<void> {
+    return new Promise(
+        (resolve) => {
+            setTimeout(
+                resolve,
+                milliseconds
+            );
+        }
+    );
+}
+
 async function requestLastFm(
     params: Record<string, string>
 ) {
@@ -43,44 +64,107 @@ async function requestLastFm(
         "json"
     );
 
-    const response =
-        await fetch(
-            url,
-            {
-                headers: {
-                    "User-Agent":
-                        "Melo Discord Bot/1.0",
-                },
-            }
-        );
+    const maxAttempts = 3;
 
-    if (!response.ok) {
-        throw new Error(
-            `Last.fm request failed with ${response.status}`
-        );
-    }
-
-    const data =
-        await response.json();
-
-    if (
-        typeof data === "object" &&
-        data !== null &&
-        "error" in data
+    for (
+        let attempt = 1;
+        attempt <= maxAttempts;
+        attempt += 1
     ) {
-        const errorData =
-            data as {
-                error?: number;
-                message?: string;
-            };
+        let response:
+            Response;
 
-        throw new Error(
-            errorData.message ??
-            "Last.fm returned an error"
-        );
+        try {
+            response =
+                await fetch(
+                    url,
+                    {
+                        headers: {
+                            "User-Agent":
+                                "Melo Discord Bot/1.0",
+                        },
+                    }
+                );
+        } catch (error) {
+            if (
+                attempt >=
+                maxAttempts
+            ) {
+                throw error;
+            }
+
+            const waitTime =
+                attempt * 500;
+
+            console.warn(
+                `Last.fm connection failed. Retrying in ${waitTime}ms...`
+            );
+
+            await delay(
+                waitTime
+            );
+
+            continue;
+        }
+
+        if (!response.ok) {
+            const retryable =
+                RETRYABLE_STATUS_CODES.has(
+                    response.status
+                );
+
+            if (
+                retryable &&
+                attempt <
+                    maxAttempts
+            ) {
+                const waitTime =
+                    attempt * 500;
+
+                console.warn(
+                    `Last.fm returned ${response.status}. ` +
+                    `Retrying in ${waitTime}ms...`
+                );
+
+                await delay(
+                    waitTime
+                );
+
+                continue;
+            }
+
+            throw new Error(
+                `Last.fm request failed with ${response.status}`
+            );
+        }
+
+        const data =
+            await response.json();
+
+        if (
+            typeof data ===
+                "object" &&
+            data !== null &&
+            "error" in data
+        ) {
+            const errorData =
+                data as {
+                    error?: number;
+                    message?: string;
+                };
+
+            throw new Error(
+                errorData.message ??
+                    "Last.fm returned an error"
+            );
+        }
+
+        return data;
     }
 
-    return data;
+    throw new Error(
+        "Last.fm request failed after multiple attempts"
+    );
 }
 
 // =================================================
