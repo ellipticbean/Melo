@@ -140,7 +140,19 @@ export type TopArtist = {
     playcount: number;
     url: string;
 };
+export type TopTrack = {
+    name: string;
+    artist: string;
+    playcount: number;
+    url: string;
+};
 
+export type TopAlbum = {
+    name: string;
+    artist: string;
+    playcount: number;
+    url: string;
+};
 type RawRecentTrack = {
     name?: string;
 
@@ -950,6 +962,207 @@ export async function getTopArtists(
 
                 url:
                     artist.url ??
+                    "",
+            })
+        );
+}
+// =================================================
+// TOP TRACKS
+// =================================================
+
+export async function getTopTracks(
+    username: string,
+    period: TopArtistPeriod =
+        "7day",
+    limit = 10
+): Promise<TopTrack[]> {
+    const safeLimit =
+        Math.min(
+            Math.max(
+                limit,
+                1
+            ),
+            25
+        );
+
+    const data =
+        (await requestLastFm({
+            method:
+                "user.getTopTracks",
+
+            user:
+                username,
+
+            period,
+
+            limit:
+                safeLimit.toString(),
+        })) as {
+            toptracks?: {
+                track?:
+                | {
+                    name?: string;
+                    playcount?: string;
+                    url?: string;
+
+                    artist?: {
+                        name?: string;
+                        url?: string;
+                    };
+                }
+                | Array<{
+                    name?: string;
+                    playcount?: string;
+                    url?: string;
+
+                    artist?: {
+                        name?: string;
+                        url?: string;
+                    };
+                }>;
+            };
+        };
+
+    const rawTracks =
+        data.toptracks?.track;
+
+    if (!rawTracks) {
+        return [];
+    }
+
+    const tracks =
+        Array.isArray(
+            rawTracks
+        )
+            ? rawTracks
+            : [rawTracks];
+
+    return tracks
+        .filter(
+            (track) =>
+                Boolean(
+                    track.name
+                )
+        )
+        .map(
+            (track) => ({
+                name:
+                    track.name ??
+                    "Unknown Track",
+
+                artist:
+                    track.artist?.name ??
+                    "Unknown Artist",
+
+                playcount:
+                    Number(
+                        track.playcount ??
+                        0
+                    ),
+
+                url:
+                    track.url ??
+                    "",
+            })
+        );
+}
+
+// =================================================
+// TOP ALBUMS
+// =================================================
+
+export async function getTopAlbums(
+    username: string,
+    period: TopArtistPeriod =
+        "7day",
+    limit = 10
+): Promise<TopAlbum[]> {
+    const safeLimit =
+        Math.min(
+            Math.max(
+                limit,
+                1
+            ),
+            25
+        );
+
+    const data =
+        (await requestLastFm({
+            method:
+                "user.getTopAlbums",
+
+            user:
+                username,
+
+            period,
+
+            limit:
+                safeLimit.toString(),
+        })) as {
+            topalbums?: {
+                album?:
+                | {
+                    name?: string;
+                    playcount?: string;
+                    url?: string;
+
+                    artist?: {
+                        name?: string;
+                        url?: string;
+                    };
+                }
+                | Array<{
+                    name?: string;
+                    playcount?: string;
+                    url?: string;
+
+                    artist?: {
+                        name?: string;
+                        url?: string;
+                    };
+                }>;
+            };
+        };
+
+    const rawAlbums =
+        data.topalbums?.album;
+
+    if (!rawAlbums) {
+        return [];
+    }
+
+    const albums =
+        Array.isArray(
+            rawAlbums
+        )
+            ? rawAlbums
+            : [rawAlbums];
+
+    return albums
+        .filter(
+            (album) =>
+                Boolean(
+                    album.name
+                )
+        )
+        .map(
+            (album) => ({
+                name:
+                    album.name ??
+                    "Unknown Album",
+
+                artist:
+                    album.artist?.name ??
+                    "Unknown Artist",
+
+                playcount:
+                    Number(
+                        album.playcount ??
+                        0
+                    ),
+
+                url:
+                    album.url ??
                     "",
             })
         );

@@ -41,7 +41,9 @@ import {
     getLastFmUser as fetchLastFmUser,
     getRecentTrack,
     getRecentTracks,
+    getTopAlbums,
     getTopArtists,
+    getTopTracks,
     getTrackInfo,
     type TopArtistPeriod,
 } from "./lastfm.js";
@@ -382,6 +384,177 @@ const commands = [
         )
 
         .toJSON(),
+
+    new SlashCommandBuilder()
+        .setName("recent")
+        .setDescription(
+            "Show your recent Last.fm tracks."
+        )
+        .addIntegerOption((option) =>
+            option
+                .setName("count")
+                .setDescription(
+                    "The number of recent tracks to show"
+                )
+                .setMinValue(1)
+                .setMaxValue(15)
+                .setRequired(false)
+        )
+        .toJSON(),
+
+    new SlashCommandBuilder()
+        .setName("topartists")
+        .setDescription(
+            "Show your top artists over a given time period."
+        )
+        .addStringOption((option) =>
+            option
+                .setName("period")
+                .setDescription(
+                    "The time period to use"
+                )
+                .addChoices(
+                    {
+                        name: "7 days",
+                        value: "7day",
+                    },
+                    {
+                        name: "1 month",
+                        value: "1month",
+                    },
+                    {
+                        name: "3 months",
+                        value: "3month",
+                    },
+                    {
+                        name: "6 months",
+                        value: "6month",
+                    },
+                    {
+                        name: "12 months",
+                        value: "12month",
+                    },
+                    {
+                        name: "Overall",
+                        value: "overall",
+                    }
+                )
+                .setRequired(false)
+        )
+        .addIntegerOption((option) =>
+            option
+                .setName("count")
+                .setDescription(
+                    "The number of entries to show"
+                )
+                .setMinValue(1)
+                .setMaxValue(25)
+                .setRequired(false)
+        )
+        .toJSON(),
+
+    new SlashCommandBuilder()
+        .setName("toptracks")
+        .setDescription(
+            "Show your top tracks over a given time period."
+        )
+        .addStringOption((option) =>
+            option
+                .setName("period")
+                .setDescription(
+                    "The time period to use"
+                )
+                .addChoices(
+                    {
+                        name: "7 days",
+                        value: "7day",
+                    },
+                    {
+                        name: "1 month",
+                        value: "1month",
+                    },
+                    {
+                        name: "3 months",
+                        value: "3month",
+                    },
+                    {
+                        name: "6 months",
+                        value: "6month",
+                    },
+                    {
+                        name: "12 months",
+                        value: "12month",
+                    },
+                    {
+                        name: "Overall",
+                        value: "overall",
+                    }
+                )
+                .setRequired(false)
+        )
+        .addIntegerOption((option) =>
+            option
+                .setName("count")
+                .setDescription(
+                    "The number of entries to show"
+                )
+                .setMinValue(1)
+                .setMaxValue(25)
+                .setRequired(false)
+        )
+        .toJSON(),
+
+    new SlashCommandBuilder()
+        .setName("topalbums")
+        .setDescription(
+            "Show your top albums over a given time period."
+        )
+        .addStringOption((option) =>
+            option
+                .setName("period")
+                .setDescription(
+                    "The time period to use"
+                )
+                .addChoices(
+                    {
+                        name: "7 days",
+                        value: "7day",
+                    },
+                    {
+                        name: "1 month",
+                        value: "1month",
+                    },
+                    {
+                        name: "3 months",
+                        value: "3month",
+                    },
+                    {
+                        name: "6 months",
+                        value: "6month",
+                    },
+                    {
+                        name: "12 months",
+                        value: "12month",
+                    },
+                    {
+                        name: "Overall",
+                        value: "overall",
+                    }
+                )
+                .setRequired(false)
+        )
+        .addIntegerOption((option) =>
+            option
+                .setName("count")
+                .setDescription(
+                    "The number of entries to show"
+                )
+                .setMinValue(1)
+                .setMaxValue(25)
+                .setRequired(false)
+        )
+        .toJSON(),
+
 ];
 
 const rest =
@@ -2321,6 +2494,217 @@ client.on(
 
                 return;
             }
+
+            // =================================================
+            // /toptracks
+            // =================================================
+
+            if (
+                interaction.commandName ===
+                "toptracks"
+            ) {
+                const username =
+                    getSavedLastFmUser(
+                        interaction.user.id
+                    );
+
+                if (!username) {
+                    await interaction.reply({
+                        content:
+                            "You haven't linked a Last.fm account yet. Use `/setuser username:` first.",
+                        flags:
+                            MessageFlags.Ephemeral,
+                    });
+
+                    return;
+                }
+
+                const period =
+                    (
+                        interaction.options
+                            .getString(
+                                "period"
+                            ) ??
+                        "7day"
+                    ) as TopArtistPeriod;
+
+                const count =
+                    interaction.options
+                        .getInteger(
+                            "count"
+                        ) ?? 10;
+
+                await interaction.deferReply();
+
+                const tracks =
+                    await getTopTracks(
+                        username,
+                        period,
+                        count
+                    );
+
+                if (
+                    tracks.length === 0
+                ) {
+                    await interaction.editReply(
+                        "You have no scrobbled tracks over that time period."
+                    );
+
+                    return;
+                }
+
+                const lines =
+                    tracks.map(
+                        (
+                            track,
+                            index
+                        ) => {
+                            const trackName =
+                                track.url
+                                    ? `[${track.name}](${track.url})`
+                                    : track.name;
+
+                            const plays =
+                                pluralize(
+                                    track.playcount,
+                                    "play"
+                                );
+
+                            return (
+                                `\`${index + 1}.\` ` +
+                                `${trackName} by ${track.artist} - ${plays}`
+                            );
+                        }
+                    );
+
+                const embed =
+                    new EmbedBuilder()
+                        .setColor(
+                            0x000000
+                        )
+                        .setTitle(
+                            `Your top tracks ${humanizePeriod(period)}`
+                        )
+                        .setDescription(
+                            lines.join(
+                                "\n"
+                            )
+                        );
+
+                await interaction.editReply({
+                    embeds: [
+                        embed,
+                    ],
+                });
+
+                return;
+            }
+
+            // =================================================
+            // /topalbums
+            // =================================================
+
+            if (
+                interaction.commandName ===
+                "topalbums"
+            ) {
+                const username =
+                    getSavedLastFmUser(
+                        interaction.user.id
+                    );
+
+                if (!username) {
+                    await interaction.reply({
+                        content:
+                            "You haven't linked a Last.fm account yet. Use `/setuser username:` first.",
+                        flags:
+                            MessageFlags.Ephemeral,
+                    });
+
+                    return;
+                }
+
+                const period =
+                    (
+                        interaction.options
+                            .getString(
+                                "period"
+                            ) ??
+                        "7day"
+                    ) as TopArtistPeriod;
+
+                const count =
+                    interaction.options
+                        .getInteger(
+                            "count"
+                        ) ?? 10;
+
+                await interaction.deferReply();
+
+                const albums =
+                    await getTopAlbums(
+                        username,
+                        period,
+                        count
+                    );
+
+                if (
+                    albums.length === 0
+                ) {
+                    await interaction.editReply(
+                        "You have no scrobbled albums over that time period."
+                    );
+
+                    return;
+                }
+
+                const lines =
+                    albums.map(
+                        (
+                            album,
+                            index
+                        ) => {
+                            const albumName =
+                                album.url
+                                    ? `[${album.name}](${album.url})`
+                                    : album.name;
+
+                            const plays =
+                                pluralize(
+                                    album.playcount,
+                                    "play"
+                                );
+
+                            return (
+                                `\`${index + 1}.\` ` +
+                                `${albumName} by ${album.artist} - ${plays}`
+                            );
+                        }
+                    );
+
+                const embed =
+                    new EmbedBuilder()
+                        .setColor(
+                            0x000000
+                        )
+                        .setTitle(
+                            `Your top albums ${humanizePeriod(period)}`
+                        )
+                        .setDescription(
+                            lines.join(
+                                "\n"
+                            )
+                        );
+
+                await interaction.editReply({
+                    embeds: [
+                        embed,
+                    ],
+                });
+
+                return;
+            }
+
         } catch (error) {
             console.error(
                 error
@@ -2353,4 +2737,5 @@ await registerCommands();
 
 await client.login(
     token
+    
 );
