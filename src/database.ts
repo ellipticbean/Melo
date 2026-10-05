@@ -55,7 +55,8 @@ export type FmMode =
     | "verbose"
     | "custom"
     | "album"
-    | "compact";
+    | "compact"
+    | "combo";
 
 // =================================================
 // DEFAULTS
@@ -282,19 +283,21 @@ export function getFmMode(
         | undefined;
 
     if (
-        row?.fm_mode ===
+    row?.fm_mode ===
         "default" ||
-        row?.fm_mode ===
+    row?.fm_mode ===
         "verbose" ||
-        row?.fm_mode ===
+    row?.fm_mode ===
         "custom" ||
-        row?.fm_mode ===
+    row?.fm_mode ===
         "album" ||
-        row?.fm_mode ===
-        "compact"
-    ) {
-        return row.fm_mode;
-    }
+    row?.fm_mode ===
+        "compact" ||
+    row?.fm_mode ===
+        "combo"
+) {
+    return row.fm_mode;
+}
 
     return DEFAULT_FM_MODE;
 }

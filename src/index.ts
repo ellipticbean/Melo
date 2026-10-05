@@ -251,6 +251,10 @@ const commands = [
                         {
                             name: "Compact",
                             value: "compact",
+                        },
+                        {
+                            name: "Combo",
+                            value: "combo",
                         }
                     )
                     .setRequired(false)
@@ -672,8 +676,6 @@ client.on(
                     interaction.commandName ===
                     "fmc"
                 ) {
-                    // /fmc always forces compact mode,
-                    // regardless of the user's saved /fmmode.
                     fmConfig =
                         COMPACT_FM_CONFIG;
                 } else if (
@@ -696,6 +698,12 @@ client.on(
                 ) {
                     fmConfig =
                         COMPACT_FM_CONFIG;
+                } else if (
+                    fmMode ===
+                    "combo"
+                ) {
+                    fmConfig =
+                        COMBO_FM_CONFIG;
                 } else {
                     fmConfig =
                         getFmPreset(
@@ -711,11 +719,18 @@ client.on(
                         track.album
                     );
 
+                const needsCombo =
+                    interaction.commandName !==
+                        "fmc" &&
+                    fmMode ===
+                        "combo";
+
                 const [
                     lastFmUser,
                     artistInfo,
                     trackInfo,
                     albumInfo,
+                    comboCount,
                 ] =
                     await Promise.all([
                         fetchLastFmUser(
@@ -769,6 +784,24 @@ client.on(
                             : Promise.resolve(
                                 null
                             ),
+
+                        needsCombo
+                            ? getArtistComboCount(
+                                username,
+                                track.artist
+                            ).catch(
+                                (error) => {
+                                    console.error(
+                                        "Could not calculate artist combo:",
+                                        error
+                                    );
+
+                                    return 0;
+                                }
+                            )
+                            : Promise.resolve(
+                                null
+                            ),
                     ]);
 
                 const artistName =
@@ -810,6 +843,8 @@ client.on(
                                 Number(
                                     lastFmUser.playcount
                                 ),
+
+                            comboCount,
                         }
                     );
 
