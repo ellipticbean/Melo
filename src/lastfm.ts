@@ -722,7 +722,42 @@ export async function getTrackInfo(
         tags,
     };
 }
+// =================================================
+// USER TRACK PLAYCOUNT
+// =================================================
 
+export async function getUserTrackPlaycount(
+    username: string,
+    artist: string,
+    track: string
+): Promise<number> {
+    const data =
+        (await requestLastFm({
+            method:
+                "track.getInfo",
+
+            username,
+
+            artist,
+
+            track,
+
+            autocorrect:
+                "1",
+        })) as {
+            track?: {
+                userplaycount?:
+                    | string
+                    | number;
+            };
+        };
+
+    return Number(
+        data.track
+            ?.userplaycount ??
+            0
+    );
+}
 // =================================================
 // ARTIST INFO
 // =================================================
@@ -999,6 +1034,43 @@ export async function getAlbumInfo(
         tags,
     };
 }
+// =================================================
+// USER ALBUM PLAYCOUNT
+// =================================================
+
+export async function getUserAlbumPlaycount(
+    username: string,
+    artist: string,
+    album: string
+): Promise<number> {
+    const data =
+        (await requestLastFm({
+            method:
+                "album.getInfo",
+
+            username,
+
+            artist,
+
+            album,
+
+            autocorrect:
+                "1",
+        })) as {
+            album?: {
+                userplaycount?:
+                    | string
+                    | number;
+            };
+        };
+
+    return Number(
+        data.album
+            ?.userplaycount ??
+            0
+    );
+}
+
 // =================================================
 // TOP ARTISTS
 // =================================================

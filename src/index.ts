@@ -46,7 +46,9 @@ import {
     getTopArtists,
     getTopTracks,
     getTrackInfo,
+    getUserAlbumPlaycount,
     getUserArtistPlaycount,
+    getUserTrackPlaycount,
     type TopArtistPeriod,
 } from "./lastfm.js";
 
@@ -225,7 +227,95 @@ const commands = [
                 .setRequired(false)
         )
         .toJSON(),
+    new SlashCommandBuilder()
+        .setName("wka")
+        .setDescription(
+            "Show who has scrobbled an album in this server."
+        )
+        .addStringOption((option) =>
+            option
+                .setName("artist")
+                .setDescription(
+                    "Artist name"
+                )
+                .setRequired(false)
+        )
+        .addStringOption((option) =>
+            option
+                .setName("album")
+                .setDescription(
+                    "Album name; leave blank to use your current album"
+                )
+                .setRequired(false)
+        )
+        .toJSON(),
 
+    new SlashCommandBuilder()
+        .setName("wkl")
+        .setDescription(
+            "Show who has scrobbled an album in this server."
+        )
+        .addStringOption((option) =>
+            option
+                .setName("artist")
+                .setDescription(
+                    "Artist name"
+                )
+                .setRequired(false)
+        )
+        .addStringOption((option) =>
+            option
+                .setName("album")
+                .setDescription(
+                    "Album name; leave blank to use your current album"
+                )
+                .setRequired(false)
+        )
+        .toJSON(),
+    new SlashCommandBuilder()
+        .setName("wkt")
+        .setDescription(
+            "Show who has scrobbled a track in this server."
+        )
+        .addStringOption((option) =>
+            option
+                .setName("artist")
+                .setDescription(
+                    "Artist name"
+                )
+                .setRequired(false)
+        )
+        .addStringOption((option) =>
+            option
+                .setName("track")
+                .setDescription(
+                    "Track name; leave blank to use your current track"
+                )
+                .setRequired(false)
+        )
+        .toJSON(),
+    new SlashCommandBuilder()
+        .setName("fmwka")
+        .setDescription(
+            "Show who has scrobbled an album in this server."
+        )
+        .addStringOption((option) =>
+            option
+                .setName("artist")
+                .setDescription(
+                    "Artist name"
+                )
+                .setRequired(false)
+        )
+        .addStringOption((option) =>
+            option
+                .setName("album")
+                .setDescription(
+                    "Album name; leave blank to use your current album"
+                )
+                .setRequired(false)
+        )
+        .toJSON(),
     new SlashCommandBuilder()
         .setName("fma")
         .setDescription(
@@ -3066,6 +3156,626 @@ client.on(
                     )
                     .setTitle(
                         `Who knows ${artist} in ${interaction.guild.name}?`
+                    )
+                    .setDescription(
+                        lines.join(
+                            "\n"
+                        )
+                    )
+                    .setFooter({
+                        text:
+                            pluralize(
+                                results.length,
+                                "server listener"
+                            ),
+                    });
+
+            await interaction.editReply({
+                embeds: [
+                    embed,
+                ],
+            });
+
+            return;
+        }
+        // =================================================
+        // /wka + /wkl + /fmwka
+        // =================================================
+
+        if (
+            interaction.commandName ===
+            "wka" ||
+            interaction.commandName ===
+            "wkl" ||
+            interaction.commandName ===
+            "fmwka"
+        ) {
+            if (!interaction.guild) {
+                await interaction.reply({
+                    content:
+                        "Who Knows Album can only be used inside a Discord server.",
+                    flags:
+                        MessageFlags.Ephemeral,
+                });
+
+                return;
+            }
+
+            await interaction.deferReply();
+
+            let artist =
+                interaction.options
+                    .getString(
+                        "artist"
+                    )
+                    ?.trim() ??
+                "";
+
+            let album =
+                interaction.options
+                    .getString(
+                        "album"
+                    )
+                    ?.trim() ??
+                "";
+
+            // Fill in any missing artist/album information
+            // from the requesting user's current/recent track.
+            if (
+                !artist ||
+                !album
+            ) {
+                const username =
+                    getSavedLastFmUser(
+                        interaction.user.id
+                    );
+
+                if (!username) {
+                    await interaction.editReply(
+                        "You haven't linked a Last.fm account yet. " +
+                        "Use `/setuser username:` first, or provide both `artist:` and `album:`."
+                    );
+
+                    return;
+                }
+
+                const track =
+                    await getRecentTrack(
+                        username
+                    );
+
+                if (!track) {
+                    await interaction.editReply(
+                        `I couldn't find any recent tracks for **${username}**.`
+                    );
+
+                    return;
+                }
+
+                if (!artist) {
+                    artist =
+                        track.artist;
+                }
+
+                if (!album) {
+                    album =
+                        track.album;
+                }
+            }
+
+            if (!album) {
+                await interaction.editReply(
+                    "I couldn't determine an album for this request."
+                );
+
+                return;
+            }
+
+            const linkedUsers =
+                getAllLastFmUsers();
+
+            const serverUsers:
+                typeof linkedUsers = [];
+
+            const memberDisplayNames =
+                new Map<
+                    string,
+                    string
+                >();
+
+            // Only check linked Melo users instead of
+            // fetching the entire Discord server.
+            for (
+                const linkedUser
+                of linkedUsers
+            ) {
+                let member =
+                    interaction.guild
+                        .members
+                        .cache
+                        .get(
+                            linkedUser.discordUserId
+                        );
+
+                if (!member) {
+                    try {
+                        member =
+                            await interaction.guild
+                                .members
+                                .fetch(
+                                    linkedUser.discordUserId
+                                );
+                    } catch {
+                        continue;
+                    }
+                }
+
+                serverUsers.push(
+                    linkedUser
+                );
+
+                memberDisplayNames.set(
+                    linkedUser.discordUserId,
+                    member.displayName
+                );
+            }
+
+            if (
+                serverUsers.length === 0
+            ) {
+                await interaction.editReply(
+                    "No one in this server has linked a Last.fm account to Melo yet."
+                );
+
+                return;
+            }
+
+            const results:
+                Array<{
+                    discordUserId: string;
+                    lastFmUsername: string;
+                    playcount: number;
+                }> = [];
+
+            const batchSize = 5;
+
+            for (
+                let index = 0;
+                index < serverUsers.length;
+                index += batchSize
+            ) {
+                const batch =
+                    serverUsers.slice(
+                        index,
+                        index +
+                        batchSize
+                    );
+
+                const batchResults =
+                    await Promise.all(
+                        batch.map(
+                            async (
+                                linkedUser
+                            ) => {
+                                try {
+                                    const playcount =
+                                        await getUserAlbumPlaycount(
+                                            linkedUser.lastFmUsername,
+                                            artist,
+                                            album
+                                        );
+
+                                    return {
+                                        discordUserId:
+                                            linkedUser.discordUserId,
+
+                                        lastFmUsername:
+                                            linkedUser.lastFmUsername,
+
+                                        playcount,
+                                    };
+                                } catch (
+                                error
+                                ) {
+                                    console.error(
+                                        `Could not load album plays for ${linkedUser.lastFmUsername}:`,
+                                        error
+                                    );
+
+                                    return null;
+                                }
+                            }
+                        )
+                    );
+
+                for (
+                    const result
+                    of batchResults
+                ) {
+                    if (
+                        result &&
+                        result.playcount > 0
+                    ) {
+                        results.push(
+                            result
+                        );
+                    }
+                }
+            }
+
+            results.sort(
+                (
+                    first,
+                    second
+                ) =>
+                    second.playcount -
+                    first.playcount
+            );
+
+            if (
+                results.length === 0
+            ) {
+                const embed =
+                    new EmbedBuilder()
+                        .setColor(
+                            0x000000
+                        )
+                        .setTitle(
+                            `Who knows ${album} by ${artist} in ${interaction.guild.name}?`
+                        )
+                        .setDescription(
+                            "No one knows this album."
+                        );
+
+                await interaction.editReply({
+                    embeds: [
+                        embed,
+                    ],
+                });
+
+                return;
+            }
+
+            const topResults =
+                results.slice(
+                    0,
+                    15
+                );
+
+            const lines =
+                topResults.map(
+                    (
+                        result,
+                        index
+                    ) => {
+                        const displayName =
+                            memberDisplayNames.get(
+                                result.discordUserId
+                            ) ??
+                            result.lastFmUsername;
+
+                        const plays =
+                            pluralize(
+                                result.playcount,
+                                "play"
+                            );
+
+                        return (
+                            `\`${index + 1}.\` ` +
+                            `**${displayName}** - ${plays}`
+                        );
+                    }
+                );
+
+            const embed =
+                new EmbedBuilder()
+                    .setColor(
+                        0x000000
+                    )
+                    .setTitle(
+                        `Who knows ${album} by ${artist} in ${interaction.guild.name}?`
+                    )
+                    .setDescription(
+                        lines.join(
+                            "\n"
+                        )
+                    )
+                    .setFooter({
+                        text:
+                            pluralize(
+                                results.length,
+                                "server listener"
+                            ),
+                    });
+
+            await interaction.editReply({
+                embeds: [
+                    embed,
+                ],
+            });
+
+            return;
+        }
+        // =================================================
+        // /wkt
+        // =================================================
+
+        if (
+            interaction.commandName ===
+            "wkt"
+        ) {
+            if (!interaction.guild) {
+                await interaction.reply({
+                    content:
+                        "Who Knows Track can only be used inside a Discord server.",
+                    flags:
+                        MessageFlags.Ephemeral,
+                });
+
+                return;
+            }
+
+            await interaction.deferReply();
+
+            let artist =
+                interaction.options
+                    .getString(
+                        "artist"
+                    )
+                    ?.trim() ??
+                "";
+
+            let trackName =
+                interaction.options
+                    .getString(
+                        "track"
+                    )
+                    ?.trim() ??
+                "";
+
+            if (
+                !artist ||
+                !trackName
+            ) {
+                const username =
+                    getSavedLastFmUser(
+                        interaction.user.id
+                    );
+
+                if (!username) {
+                    await interaction.editReply(
+                        "You haven't linked a Last.fm account yet. " +
+                        "Use `/setuser username:` first, or provide both `artist:` and `track:`."
+                    );
+
+                    return;
+                }
+
+                const track =
+                    await getRecentTrack(
+                        username
+                    );
+
+                if (!track) {
+                    await interaction.editReply(
+                        `I couldn't find any recent tracks for **${username}**.`
+                    );
+
+                    return;
+                }
+
+                if (!artist) {
+                    artist =
+                        track.artist;
+                }
+
+                if (!trackName) {
+                    trackName =
+                        track.name;
+                }
+            }
+
+            const linkedUsers =
+                getAllLastFmUsers();
+
+            const serverUsers:
+                typeof linkedUsers = [];
+
+            const memberDisplayNames =
+                new Map<
+                    string,
+                    string
+                >();
+
+            for (
+                const linkedUser
+                of linkedUsers
+            ) {
+                let member =
+                    interaction.guild
+                        .members
+                        .cache
+                        .get(
+                            linkedUser.discordUserId
+                        );
+
+                if (!member) {
+                    try {
+                        member =
+                            await interaction.guild
+                                .members
+                                .fetch(
+                                    linkedUser.discordUserId
+                                );
+                    } catch {
+                        continue;
+                    }
+                }
+
+                serverUsers.push(
+                    linkedUser
+                );
+
+                memberDisplayNames.set(
+                    linkedUser.discordUserId,
+                    member.displayName
+                );
+            }
+
+            if (
+                serverUsers.length === 0
+            ) {
+                await interaction.editReply(
+                    "No one in this server has linked a Last.fm account to Melo yet."
+                );
+
+                return;
+            }
+
+            const results:
+                Array<{
+                    discordUserId: string;
+                    lastFmUsername: string;
+                    playcount: number;
+                }> = [];
+
+            const batchSize = 5;
+
+            for (
+                let index = 0;
+                index < serverUsers.length;
+                index += batchSize
+            ) {
+                const batch =
+                    serverUsers.slice(
+                        index,
+                        index +
+                        batchSize
+                    );
+
+                const batchResults =
+                    await Promise.all(
+                        batch.map(
+                            async (
+                                linkedUser
+                            ) => {
+                                try {
+                                    const playcount =
+                                        await getUserTrackPlaycount(
+                                            linkedUser.lastFmUsername,
+                                            artist,
+                                            trackName
+                                        );
+
+                                    return {
+                                        discordUserId:
+                                            linkedUser.discordUserId,
+
+                                        lastFmUsername:
+                                            linkedUser.lastFmUsername,
+
+                                        playcount,
+                                    };
+                                } catch (
+                                error
+                                ) {
+                                    console.error(
+                                        `Could not load track plays for ${linkedUser.lastFmUsername}:`,
+                                        error
+                                    );
+
+                                    return null;
+                                }
+                            }
+                        )
+                    );
+
+                for (
+                    const result
+                    of batchResults
+                ) {
+                    if (
+                        result &&
+                        result.playcount > 0
+                    ) {
+                        results.push(
+                            result
+                        );
+                    }
+                }
+            }
+
+            results.sort(
+                (
+                    first,
+                    second
+                ) =>
+                    second.playcount -
+                    first.playcount
+            );
+
+            if (
+                results.length === 0
+            ) {
+                const embed =
+                    new EmbedBuilder()
+                        .setColor(
+                            0x000000
+                        )
+                        .setTitle(
+                            `Who knows ${trackName} by ${artist} in ${interaction.guild.name}?`
+                        )
+                        .setDescription(
+                            "No one knows this track."
+                        );
+
+                await interaction.editReply({
+                    embeds: [
+                        embed,
+                    ],
+                });
+
+                return;
+            }
+
+            const topResults =
+                results.slice(
+                    0,
+                    15
+                );
+
+            const lines =
+                topResults.map(
+                    (
+                        result,
+                        index
+                    ) => {
+                        const displayName =
+                            memberDisplayNames.get(
+                                result.discordUserId
+                            ) ??
+                            result.lastFmUsername;
+
+                        const plays =
+                            pluralize(
+                                result.playcount,
+                                "play"
+                            );
+
+                        return (
+                            `\`${index + 1}.\` ` +
+                            `**${displayName}** - ${plays}`
+                        );
+                    }
+                );
+
+            const embed =
+                new EmbedBuilder()
+                    .setColor(
+                        0x000000
+                    )
+                    .setTitle(
+                        `Who knows ${trackName} by ${artist} in ${interaction.guild.name}?`
                     )
                     .setDescription(
                         lines.join(
