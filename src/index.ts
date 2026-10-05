@@ -24,6 +24,7 @@ import {
 
 import {
     ALBUM_FM_CONFIG,
+    COMPACT_FM_CONFIG,
     FM_COMPONENTS,
     FM_COMPONENT_LABELS,
     FM_PRESETS,
@@ -194,6 +195,14 @@ const commands = [
             "Display your now playing track with album information."
         )
         .toJSON(),
+
+    new SlashCommandBuilder()
+        .setName("fmc")
+        .setDescription(
+            "Display a compact now playing or last played track."
+        )
+        .toJSON(),
+
     new SlashCommandBuilder()
         .setName("fmmode")
         .setDescription(
@@ -222,6 +231,10 @@ const commands = [
                         {
                             name: "Album",
                             value: "album",
+                        },
+                        {
+                            name: "Compact",
+                            value: "compact",
                         }
                     )
                     .setRequired(false)
@@ -586,14 +599,16 @@ client.on(
                 return;
             }
             // =================================================
-            // /fm + /np
+            // /fm + /np + /fmc
             // =================================================
 
             if (
                 interaction.commandName ===
                 "fm" ||
                 interaction.commandName ===
-                "np"
+                "np" ||
+                interaction.commandName ===
+                "fmc"
             ) {
                 const userId =
                     interaction.user.id;
@@ -638,6 +653,14 @@ client.on(
                     string[];
 
                 if (
+                    interaction.commandName ===
+                    "fmc"
+                ) {
+                    // /fmc always forces compact mode,
+                    // regardless of the user's saved /fmmode.
+                    fmConfig =
+                        COMPACT_FM_CONFIG;
+                } else if (
                     fmMode ===
                     "custom"
                 ) {
@@ -651,6 +674,12 @@ client.on(
                 ) {
                     fmConfig =
                         ALBUM_FM_CONFIG;
+                } else if (
+                    fmMode ===
+                    "compact"
+                ) {
+                    fmConfig =
+                        COMPACT_FM_CONFIG;
                 } else {
                     fmConfig =
                         getFmPreset(

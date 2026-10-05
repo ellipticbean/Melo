@@ -54,7 +54,8 @@ export type FmMode =
     | "default"
     | "verbose"
     | "custom"
-    | "album";
+    | "album"
+    | "compact";
 
 // =================================================
 // DEFAULTS
@@ -288,7 +289,9 @@ export function getFmMode(
         row?.fm_mode ===
         "custom" ||
         row?.fm_mode ===
-        "album"
+        "album" ||
+        row?.fm_mode ===
+        "compact"
     ) {
         return row.fm_mode;
     }

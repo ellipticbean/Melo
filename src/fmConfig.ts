@@ -112,6 +112,10 @@ export const ALBUM_FM_CONFIG:
         "album-plays",
         "artist-tags",
     ];
+
+export const COMPACT_FM_CONFIG:
+
+    FmComponent[] = [];
 // =================================================
 // CONFIG HELPERS
 // =================================================
