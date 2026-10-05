@@ -12,7 +12,14 @@ import {
 } from "discord.js";
 
 import {
+    CROWN_THRESHOLD,
+    createCrown,
     getAllLastFmUsers,
+    getCrown,
+    getCrownLeaderboard,
+    getServerCrownCount,
+    getTopCrowns,
+    getUserCrowns,
     getFmConfig,
     getFmMode,
     getLastFmUser as getSavedLastFmUser,
@@ -20,6 +27,8 @@ import {
     saveFmConfig,
     saveFmMode,
     saveLastFmUser,
+    stealCrown,
+    updateCrownPlays,
     type FmMode,
 } from "./database.js";
 
@@ -314,6 +323,89 @@ const commands = [
                     "Album name; leave blank to use your current album"
                 )
                 .setRequired(false)
+        )
+        .toJSON(),
+    new SlashCommandBuilder()
+        .setName("crowns")
+        .setDescription(
+            "Check and manage artist crowns."
+        )
+
+        .addSubcommand(
+            (subcommand) =>
+                subcommand
+                    .setName("check")
+                    .setDescription(
+                        "Check whether you can claim or steal an artist crown."
+                    )
+                    .addStringOption(
+                        (option) =>
+                            option
+                                .setName(
+                                    "artist"
+                                )
+                                .setDescription(
+                                    "Artist name; leave blank to use your current artist"
+                                )
+                                .setRequired(
+                                    false
+                                )
+                    )
+        )
+
+        .addSubcommand(
+            (subcommand) =>
+                subcommand
+                    .setName("list")
+                    .setDescription(
+                        "List the crowns held by a user in this server."
+                    )
+                    .addUserOption(
+                        (option) =>
+                            option
+                                .setName(
+                                    "user"
+                                )
+                                .setDescription(
+                                    "User whose crowns to view"
+                                )
+                                .setRequired(
+                                    false
+                                )
+                    )
+        )
+        .addSubcommand(
+            (subcommand) =>
+                subcommand
+                    .setName("leaderboard")
+                    .setDescription(
+                        "Show the server's crown leaderboard."
+                    )
+        )
+
+        .addSubcommand(
+            (subcommand) =>
+                subcommand
+                    .setName("top")
+                    .setDescription(
+                        "Show the highest-play crowns in this server."
+                    )
+        )
+
+        .toJSON(),
+    new SlashCommandBuilder()
+        .setName("whohas")
+        .setDescription(
+            "Show who holds the crown for an artist."
+        )
+        .addStringOption(
+            (option) =>
+                option
+                    .setName("artist")
+                    .setDescription(
+                        "Artist name; leave blank to use your current artist"
+                    )
+                    .setRequired(false)
         )
         .toJSON(),
     new SlashCommandBuilder()
@@ -1826,6 +1918,1088 @@ client.on(
                 return;
             }
             // =================================================
+            // /crowns
+            // =================================================
+
+            if (
+                interaction.commandName ===
+                "crowns"
+            ) {
+                if (!interaction.guild) {
+                    await interaction.reply({
+                        content:
+                            "Crowns can only be used inside a Discord server.",
+                        flags:
+                            MessageFlags.Ephemeral,
+                    });
+
+                    return;
+                }
+
+                const subcommand =
+                    interaction.options
+                        .getSubcommand();
+                // ---------------------------------------------
+                // /crowns list
+                // ---------------------------------------------
+
+                if (
+                    subcommand ===
+                    "list"
+                ) {
+                    const selectedUser =
+                        interaction.options
+                            .getUser(
+                                "user"
+                            ) ??
+                        interaction.user;
+
+                    const crowns =
+                        getUserCrowns(
+                            interaction.guild.id,
+                            selectedUser.id
+                        );
+
+                    let displayName =
+                        selectedUser.username;
+
+                    const cachedMember =
+                        interaction.guild
+                            .members
+                            .cache
+                            .get(
+                                selectedUser.id
+                            );
+
+                    if (cachedMember) {
+                        displayName =
+                            cachedMember.displayName;
+                    } else {
+                        try {
+                            const fetchedMember =
+                                await interaction.guild
+                                    .members
+                                    .fetch(
+                                        selectedUser.id
+                                    );
+
+                            displayName =
+                                fetchedMember.displayName;
+                        } catch {
+                            // Username fallback is fine.
+                        }
+                    }
+
+                    if (
+                        crowns.length === 0
+                    ) {
+                        const embed =
+                            new EmbedBuilder()
+                                .setColor(
+                                    0x000000
+                                )
+                                .setTitle(
+                                    selectedUser.id ===
+                                        interaction.user.id
+                                        ? `Your crowns in ${interaction.guild.name}`
+                                        : `${displayName}'s crowns in ${interaction.guild.name}`
+                                )
+                                .setDescription(
+                                    selectedUser.id ===
+                                        interaction.user.id
+                                        ? "You don't hold any crowns in this server yet."
+                                        : `${displayName} doesn't hold any crowns in this server.`
+                                );
+
+                        await interaction.reply({
+                            embeds: [
+                                embed,
+                            ],
+                        });
+
+                        return;
+                    }
+
+                    const visibleCrowns =
+                        crowns.slice(
+                            0,
+                            15
+                        );
+
+                    const lines =
+                        visibleCrowns.map(
+                            (
+                                crown,
+                                index
+                            ) => {
+                                return (
+                                    `\`${index + 1}.\` ` +
+                                    `${crown.artistName} - ` +
+                                    `**${pluralize(crown.plays, "play")}**`
+                                );
+                            }
+                        );
+
+                    const title =
+                        selectedUser.id ===
+                            interaction.user.id
+                            ? `Your crowns in ${interaction.guild.name}`
+                            : `${displayName}'s crowns in ${interaction.guild.name}`;
+
+                    const embed =
+                        new EmbedBuilder()
+                            .setColor(
+                                0x000000
+                            )
+                            .setTitle(
+                                title
+                            )
+                            .setDescription(
+                                lines.join(
+                                    "\n"
+                                )
+                            )
+                            .setFooter({
+                                text:
+                                    pluralize(
+                                        crowns.length,
+                                        "crown"
+                                    ) +
+                                    (
+                                        crowns.length > 15
+                                            ? " • showing top 15"
+                                            : ""
+                                    ),
+                            });
+
+                    await interaction.reply({
+                        embeds: [
+                            embed,
+                        ],
+                    });
+
+                    return;
+                }
+                // ---------------------------------------------
+                // /crowns leaderboard
+                // ---------------------------------------------
+
+                if (
+                    subcommand ===
+                    "leaderboard"
+                ) {
+                    const leaderboard =
+                        getCrownLeaderboard(
+                            interaction.guild.id
+                        );
+
+                    const totalCrowns =
+                        getServerCrownCount(
+                            interaction.guild.id
+                        );
+
+                    if (
+                        leaderboard.length === 0
+                    ) {
+                        const embed =
+                            new EmbedBuilder()
+                                .setColor(
+                                    0x000000
+                                )
+                                .setTitle(
+                                    `${interaction.guild.name}'s crown leaderboard`
+                                )
+                                .setDescription(
+                                    "There are no crowns in this server yet."
+                                );
+
+                        await interaction.reply({
+                            embeds: [
+                                embed,
+                            ],
+                        });
+
+                        return;
+                    }
+
+                    const visibleEntries =
+                        leaderboard.slice(
+                            0,
+                            15
+                        );
+
+                    const lines:
+                        string[] = [];
+
+                    let displayedRank = 0;
+
+                    for (
+                        const entry
+                        of visibleEntries
+                    ) {
+                        let displayName:
+                            string | null =
+                            null;
+
+                        const cachedMember =
+                            interaction.guild
+                                .members
+                                .cache
+                                .get(
+                                    entry.discordUserId
+                                );
+
+                        if (cachedMember) {
+                            displayName =
+                                cachedMember.displayName;
+                        } else {
+                            try {
+                                const fetchedMember =
+                                    await interaction.guild
+                                        .members
+                                        .fetch(
+                                            entry.discordUserId
+                                        );
+
+                                displayName =
+                                    fetchedMember.displayName;
+                            } catch {
+                                // The holder may no longer be
+                                // in this Discord server.
+                                continue;
+                            }
+                        }
+
+                        displayedRank += 1;
+
+                        lines.push(
+                            `\`${displayedRank}.\` ` +
+                            `**${displayName}** with ` +
+                            `**${pluralize(entry.crownCount, "crown")}**`
+                        );
+                    }
+
+                    if (
+                        lines.length === 0
+                    ) {
+                        const embed =
+                            new EmbedBuilder()
+                                .setColor(
+                                    0x000000
+                                )
+                                .setTitle(
+                                    `${interaction.guild.name}'s crown leaderboard`
+                                )
+                                .setDescription(
+                                    "There are no current crown holders in this server."
+                                );
+
+                        await interaction.reply({
+                            embeds: [
+                                embed,
+                            ],
+                        });
+
+                        return;
+                    }
+
+                    const crownSummary =
+                        totalCrowns === 1
+                            ? `There is **1 crown** in ${interaction.guild.name}.`
+                            : `There are **${totalCrowns.toLocaleString()} crowns** in ${interaction.guild.name}.`;
+
+                    const embed =
+                        new EmbedBuilder()
+                            .setColor(
+                                0x000000
+                            )
+                            .setTitle(
+                                `${interaction.guild.name}'s crown leaderboard`
+                            )
+                            .setDescription(
+                                crownSummary +
+                                "\n\n" +
+                                lines.join(
+                                    "\n"
+                                )
+                            )
+                            .setFooter({
+                                text:
+                                    leaderboard.length > 15
+                                        ? "Showing top 15 crown holders"
+                                        : pluralize(
+                                            leaderboard.length,
+                                            "crown holder"
+                                        ),
+                            });
+
+                    await interaction.reply({
+                        embeds: [
+                            embed,
+                        ],
+                    });
+
+                    return;
+                }
+                // ---------------------------------------------
+                // /crowns top
+                // ---------------------------------------------
+
+                if (
+                    subcommand ===
+                    "top"
+                ) {
+                    const crowns =
+                        getTopCrowns(
+                            interaction.guild.id,
+                            10
+                        );
+
+                    const totalCrowns =
+                        getServerCrownCount(
+                            interaction.guild.id
+                        );
+
+                    if (
+                        crowns.length === 0
+                    ) {
+                        const embed =
+                            new EmbedBuilder()
+                                .setColor(
+                                    0x000000
+                                )
+                                .setTitle(
+                                    `Top crowns in ${interaction.guild.name}`
+                                )
+                                .setDescription(
+                                    "There are no crowns in this server yet."
+                                );
+
+                        await interaction.reply({
+                            embeds: [
+                                embed,
+                            ],
+                        });
+
+                        return;
+                    }
+
+                    const lines:
+                        string[] = [];
+
+                    let displayedRank = 0;
+
+                    for (
+                        const crown
+                        of crowns
+                    ) {
+                        let holderName:
+                            string | null =
+                            null;
+
+                        const cachedHolder =
+                            interaction.guild
+                                .members
+                                .cache
+                                .get(
+                                    crown.holderDiscordUserId
+                                );
+
+                        if (cachedHolder) {
+                            holderName =
+                                cachedHolder.displayName;
+                        } else {
+                            try {
+                                const fetchedHolder =
+                                    await interaction.guild
+                                        .members
+                                        .fetch(
+                                            crown.holderDiscordUserId
+                                        );
+
+                                holderName =
+                                    fetchedHolder.displayName;
+                            } catch {
+                                // Skip crowns whose holder is no
+                                // longer in the Discord server.
+                                continue;
+                            }
+                        }
+
+                        displayedRank += 1;
+
+                        lines.push(
+                            `\`${displayedRank}.\` ` +
+                            `${crown.artistName} ` +
+                            `(**${crown.plays.toLocaleString()}**, ${holderName})`
+                        );
+                    }
+
+                    if (
+                        lines.length === 0
+                    ) {
+                        const embed =
+                            new EmbedBuilder()
+                                .setColor(
+                                    0x000000
+                                )
+                                .setTitle(
+                                    `Top crowns in ${interaction.guild.name}`
+                                )
+                                .setDescription(
+                                    "There are no current crown holders in this server."
+                                );
+
+                        await interaction.reply({
+                            embeds: [
+                                embed,
+                            ],
+                        });
+
+                        return;
+                    }
+
+                    const summary =
+                        totalCrowns === 1
+                            ? `There is **1 crown** in ${interaction.guild.name}.`
+                            : `There are **${totalCrowns.toLocaleString()} crowns** in ${interaction.guild.name}.`;
+
+                    const embed =
+                        new EmbedBuilder()
+                            .setColor(
+                                0x000000
+                            )
+                            .setTitle(
+                                `Top crowns in ${interaction.guild.name}`
+                            )
+                            .setDescription(
+                                lines.join(
+                                    "\n"
+                                ) +
+                                "\n\n" +
+                                summary
+                            );
+
+                    await interaction.reply({
+                        embeds: [
+                            embed,
+                        ],
+                    });
+
+                    return;
+                }
+
+                // ---------------------------------------------
+                // /crowns check
+                // ---------------------------------------------
+
+                if (
+                    subcommand ===
+                    "check"
+                ) {
+                    const userId =
+                        interaction.user.id;
+
+                    const username =
+                        getSavedLastFmUser(
+                            userId
+                        );
+
+                    if (!username) {
+                        await interaction.reply({
+                            content:
+                                "You haven't linked a Last.fm account yet. Use `/setuser username:` first.",
+                            flags:
+                                MessageFlags.Ephemeral,
+                        });
+
+                        return;
+                    }
+
+                    await interaction.deferReply();
+
+                    let artist =
+                        interaction.options
+                            .getString(
+                                "artist"
+                            )
+                            ?.trim() ??
+                        "";
+
+                    if (!artist) {
+                        const track =
+                            await getRecentTrack(
+                                username
+                            );
+
+                        if (!track) {
+                            await interaction.editReply(
+                                `I couldn't find any recent tracks for **${username}**.`
+                            );
+
+                            return;
+                        }
+
+                        artist =
+                            track.artist;
+                    }
+
+                    // artist.getInfo gives us both the canonical
+                    // artist name and this user's current playcount.
+                    const artistInfo =
+                        await getArtistInfo(
+                            username,
+                            artist
+                        );
+
+                    const artistName =
+                        artistInfo.name;
+
+                    const userPlays =
+                        artistInfo.userPlaycount;
+
+                    const serverId =
+                        interaction.guild.id;
+
+                    let crown =
+                        getCrown(
+                            serverId,
+                            artistName
+                        );
+
+                    const requesterName =
+                        interaction.guild
+                            .members
+                            .cache
+                            .get(
+                                userId
+                            )
+                            ?.displayName ??
+                        interaction.user.username;
+
+                    // -----------------------------------------
+                    // No crown exists yet
+                    // -----------------------------------------
+
+                    if (!crown) {
+                        if (
+                            userPlays <
+                            CROWN_THRESHOLD
+                        ) {
+                            const needed =
+                                CROWN_THRESHOLD -
+                                userPlays;
+
+                            const embed =
+                                new EmbedBuilder()
+                                    .setColor(
+                                        0x000000
+                                    )
+                                    .setTitle(
+                                        `Crown check for ${artistName}`
+                                    )
+                                    .setDescription(
+                                        `No one has the crown for **${artistName}**.\n\n` +
+                                        `You have **${pluralize(userPlays, "play")}**.\n` +
+                                        `You need **${pluralize(CROWN_THRESHOLD, "play")}** to claim it ` +
+                                        `(${pluralize(needed, "more play")} needed).`
+                                    );
+
+                            await interaction.editReply({
+                                embeds: [
+                                    embed,
+                                ],
+                            });
+
+                            return;
+                        }
+
+                        crown =
+                            createCrown(
+                                serverId,
+                                artistName,
+                                userId,
+                                userPlays
+                            );
+
+                        const embed =
+                            new EmbedBuilder()
+                                .setColor(
+                                    0x000000
+                                )
+                                .setTitle(
+                                    `👑 New crown for ${artistName}`
+                                )
+                                .setDescription(
+                                    `**${requesterName}** claimed the crown for **${artistName}** ` +
+                                    `with **${pluralize(userPlays, "play")}**!`
+                                );
+
+                        await interaction.editReply({
+                            embeds: [
+                                embed,
+                            ],
+                        });
+
+                        return;
+                    }
+
+                    // -----------------------------------------
+                    // Existing holder is checking their crown
+                    // -----------------------------------------
+
+                    if (
+                        crown.holderDiscordUserId ===
+                        userId
+                    ) {
+                        updateCrownPlays(
+                            serverId,
+                            artistName,
+                            userPlays
+                        );
+
+                        const embed =
+                            new EmbedBuilder()
+                                .setColor(
+                                    0x000000
+                                )
+                                .setTitle(
+                                    `👑 You hold the ${artistName} crown`
+                                )
+                                .setDescription(
+                                    `Your crown has been updated to **${pluralize(userPlays, "play")}**.`
+                                );
+
+                        await interaction.editReply({
+                            embeds: [
+                                embed,
+                            ],
+                        });
+
+                        return;
+                    }
+
+                    // -----------------------------------------
+                    // Refresh the current holder's playcount
+                    // before comparing.
+                    // -----------------------------------------
+
+                    const holderUsername =
+                        getSavedLastFmUser(
+                            crown.holderDiscordUserId
+                        );
+
+                    if (holderUsername) {
+                        try {
+                            const refreshedHolderPlays =
+                                await getUserArtistPlaycount(
+                                    holderUsername,
+                                    artistName
+                                );
+
+                            updateCrownPlays(
+                                serverId,
+                                artistName,
+                                refreshedHolderPlays
+                            );
+
+                            crown = {
+                                ...crown,
+
+                                plays:
+                                    refreshedHolderPlays,
+                            };
+                        } catch (
+                        error
+                        ) {
+                            console.error(
+                                "Could not refresh crown holder playcount:",
+                                error
+                            );
+                        }
+                    }
+
+                    let holderName =
+                        crown.holderDiscordUserId;
+
+                    const cachedHolder =
+                        interaction.guild
+                            .members
+                            .cache
+                            .get(
+                                crown.holderDiscordUserId
+                            );
+
+                    if (cachedHolder) {
+                        holderName =
+                            cachedHolder.displayName;
+                    } else {
+                        try {
+                            const fetchedHolder =
+                                await interaction.guild
+                                    .members
+                                    .fetch(
+                                        crown.holderDiscordUserId
+                                    );
+
+                            holderName =
+                                fetchedHolder.displayName;
+                        } catch {
+                            holderName =
+                                `<@${crown.holderDiscordUserId}>`;
+                        }
+                    }
+
+                    // -----------------------------------------
+                    // Challenger steals crown
+                    // -----------------------------------------
+
+                    if (
+                        userPlays >
+                        crown.plays
+                    ) {
+                        stealCrown(
+                            serverId,
+                            artistName,
+                            userId,
+                            userPlays
+                        );
+
+                        const embed =
+                            new EmbedBuilder()
+                                .setColor(
+                                    0x000000
+                                )
+                                .setTitle(
+                                    `👑 Crown stolen for ${artistName}`
+                                )
+                                .setDescription(
+                                    `**${requesterName}** stole the crown from **${holderName}**!\n\n` +
+                                    `**${requesterName}:** ${pluralize(userPlays, "play")}\n` +
+                                    `**${holderName}:** ${pluralize(crown.plays, "play")}`
+                                );
+
+                        await interaction.editReply({
+                            embeds: [
+                                embed,
+                            ],
+                        });
+
+                        return;
+                    }
+
+                    // -----------------------------------------
+                    // Tie
+                    // -----------------------------------------
+
+                    if (
+                        userPlays ===
+                        crown.plays
+                    ) {
+                        const embed =
+                            new EmbedBuilder()
+                                .setColor(
+                                    0x000000
+                                )
+                                .setTitle(
+                                    `Crown check for ${artistName}`
+                                )
+                                .setDescription(
+                                    `You are tied with **${holderName}** at **${pluralize(userPlays, "play")}**.\n\n` +
+                                    `A tie does not steal the crown.`
+                                );
+
+                        await interaction.editReply({
+                            embeds: [
+                                embed,
+                            ],
+                        });
+
+                        return;
+                    }
+
+                    // -----------------------------------------
+                    // Challenger loses
+                    // -----------------------------------------
+
+                    const difference =
+                        crown.plays -
+                        userPlays;
+
+                    const embed =
+                        new EmbedBuilder()
+                            .setColor(
+                                0x000000
+                            )
+                            .setTitle(
+                                `Crown check for ${artistName}`
+                            )
+                            .setDescription(
+                                `**${holderName}** keeps the crown for **${artistName}**.\n\n` +
+                                `**${holderName}:** ${pluralize(crown.plays, "play")}\n` +
+                                `**${requesterName}:** ${pluralize(userPlays, "play")}\n\n` +
+                                `You need **${pluralize(difference + 1, "more play")}** to take it.`
+                            );
+
+                    await interaction.editReply({
+                        embeds: [
+                            embed,
+                        ],
+                    });
+
+                    return;
+                }
+            }
+            // =================================================
+            // /whohas
+            // =================================================
+
+            if (
+                interaction.commandName ===
+                "whohas"
+            ) {
+                if (!interaction.guild) {
+                    await interaction.reply({
+                        content:
+                            "Crowns can only be viewed inside a Discord server.",
+                        flags:
+                            MessageFlags.Ephemeral,
+                    });
+
+                    return;
+                }
+
+                await interaction.deferReply();
+
+                let artist =
+                    interaction.options
+                        .getString(
+                            "artist"
+                        )
+                        ?.trim() ??
+                    "";
+
+                const requesterUsername =
+                    getSavedLastFmUser(
+                        interaction.user.id
+                    );
+
+                if (!artist) {
+                    if (!requesterUsername) {
+                        await interaction.editReply(
+                            "You haven't linked a Last.fm account yet. " +
+                            "Use `/setuser username:` first, or provide an `artist:`."
+                        );
+
+                        return;
+                    }
+
+                    const track =
+                        await getRecentTrack(
+                            requesterUsername
+                        );
+
+                    if (!track) {
+                        await interaction.editReply(
+                            `I couldn't find any recent tracks for **${requesterUsername}**.`
+                        );
+
+                        return;
+                    }
+
+                    artist =
+                        track.artist;
+                }
+
+                const crown =
+                    getCrown(
+                        interaction.guild.id,
+                        artist
+                    );
+
+                // ---------------------------------------------
+                // No crown exists
+                // ---------------------------------------------
+
+                if (!crown) {
+                    let extraText =
+                        `No one has the crown for **${artist}**.`;
+
+                    if (requesterUsername) {
+                        try {
+                            const requesterPlays =
+                                await getUserArtistPlaycount(
+                                    requesterUsername,
+                                    artist
+                                );
+
+                            if (
+                                requesterPlays >=
+                                CROWN_THRESHOLD
+                            ) {
+                                extraText +=
+                                    `\n\nYou have **${pluralize(requesterPlays, "play")}** ` +
+                                    "and can claim it with `/crowns check`.";
+                            } else {
+                                const needed =
+                                    CROWN_THRESHOLD -
+                                    requesterPlays;
+
+                                extraText +=
+                                    `\n\nYou have **${pluralize(requesterPlays, "play")}**. ` +
+                                    `You need **${pluralize(needed, "more play")}** to reach the ` +
+                                    `${CROWN_THRESHOLD}-play crown threshold.`;
+                            }
+                        } catch (
+                        error
+                        ) {
+                            console.error(
+                                "Could not load requester artist plays:",
+                                error
+                            );
+                        }
+                    }
+
+                    const embed =
+                        new EmbedBuilder()
+                            .setColor(
+                                0x000000
+                            )
+                            .setTitle(
+                                `Who has ${artist}?`
+                            )
+                            .setDescription(
+                                extraText
+                            );
+
+                    await interaction.editReply({
+                        embeds: [
+                            embed,
+                        ],
+                    });
+
+                    return;
+                }
+
+                // ---------------------------------------------
+                // Refresh holder's current playcount
+                // ---------------------------------------------
+
+                let holderPlays =
+                    crown.plays;
+
+                const holderLastFmUsername =
+                    getSavedLastFmUser(
+                        crown.holderDiscordUserId
+                    );
+
+                if (holderLastFmUsername) {
+                    try {
+                        holderPlays =
+                            await getUserArtistPlaycount(
+                                holderLastFmUsername,
+                                crown.artistName
+                            );
+
+                        updateCrownPlays(
+                            interaction.guild.id,
+                            crown.artistName,
+                            holderPlays
+                        );
+                    } catch (
+                    error
+                    ) {
+                        console.error(
+                            "Could not refresh crown holder playcount:",
+                            error
+                        );
+                    }
+                }
+
+                // ---------------------------------------------
+                // Resolve holder's Discord display name
+                // ---------------------------------------------
+
+                let holderName =
+                    holderLastFmUsername ??
+                    crown.holderDiscordUserId;
+
+                const cachedHolder =
+                    interaction.guild
+                        .members
+                        .cache
+                        .get(
+                            crown.holderDiscordUserId
+                        );
+
+                if (cachedHolder) {
+                    holderName =
+                        cachedHolder.displayName;
+                } else {
+                    try {
+                        const fetchedHolder =
+                            await interaction.guild
+                                .members
+                                .fetch(
+                                    crown.holderDiscordUserId
+                                );
+
+                        holderName =
+                            fetchedHolder.displayName;
+                    } catch {
+                        // Keep Last.fm username / ID fallback.
+                    }
+                }
+
+                const createdTimestamp =
+                    Math.floor(
+                        crown.createdAt /
+                        1000
+                    );
+
+                const lastStolenTimestamp =
+                    Math.floor(
+                        crown.lastStolenAt /
+                        1000
+                    );
+
+                let historyText =
+                    `Created <t:${createdTimestamp}:R>.`;
+
+                if (
+                    crown.version === 0
+                ) {
+                    historyText +=
+                        "\nIt has never been stolen.";
+                } else {
+                    historyText +=
+                        `\nLast stolen <t:${lastStolenTimestamp}:R>.` +
+                        `\nIt has been stolen **${pluralize(crown.version, "time")}**.`;
+                }
+
+                const embed =
+                    new EmbedBuilder()
+                        .setColor(
+                            0x000000
+                        )
+                        .setTitle(
+                            `👑 Who has ${crown.artistName}?`
+                        )
+                        .setDescription(
+                            `**${holderName}** has the crown for **${crown.artistName}** ` +
+                            `with **${pluralize(holderPlays, "play")}**.\n\n` +
+                            historyText
+                        );
+
+                await interaction.editReply({
+                    embeds: [
+                        embed,
+                    ],
+                });
+
+                return;
+            }
+            // =================================================
             // /npc
             // =================================================
 
@@ -3093,7 +4267,11 @@ client.on(
                     second.playcount -
                     first.playcount
             );
-
+            const crown =
+                getCrown(
+                    interaction.guild.id,
+                    artist
+                );
             if (
                 results.length === 0
             ) {
@@ -3142,9 +4320,18 @@ client.on(
                                 "play"
                             );
 
+                        const hasCrown =
+                            crown?.holderDiscordUserId ===
+                            result.discordUserId;
+
                         return (
                             `\`${index + 1}.\` ` +
-                            `**${displayName}** - ${plays}`
+                            `**${displayName}** - ${plays}` +
+                            (
+                                hasCrown
+                                    ? " 👑"
+                                    : ""
+                            )
                         );
                     }
                 );
