@@ -112,7 +112,11 @@ export const ALBUM_FM_CONFIG:
         "album-plays",
         "artist-tags",
     ];
-
+export const COMBO_FM_CONFIG:
+    FmComponent[] = [
+        "artist-plays",
+        "artist-tags",
+    ];
 export const COMPACT_FM_CONFIG:
 
     FmComponent[] = [];
@@ -181,6 +185,10 @@ export type FmFooterData = {
     | null;
 
     totalScrobbles: number;
+
+    comboCount?:
+    | number
+    | null;
 };
 
 function pluralize(
@@ -300,6 +308,26 @@ function buildFooterPieces(
                         .userPlaycount,
                     `${data.artistName} scrobble`,
                     `${data.artistName} scrobbles`
+                ),
+
+            size: 1,
+        });
+    }
+    // Combo is intentionally hidden from FM_COMPONENTS.
+    // It is only supplied by combo mode.
+    if (
+        data.comboCount !==
+        undefined &&
+        data.comboCount !==
+        null
+    ) {
+        pieces.push({
+            text:
+                `${data.comboCount.toLocaleString()} in a row` +
+                (
+                    data.comboCount > 100
+                        ? " 🔥"
+                        : ""
                 ),
 
             size: 1,

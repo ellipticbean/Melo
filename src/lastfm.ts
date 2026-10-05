@@ -364,7 +364,158 @@ export async function getRecentTrack(
         null
     );
 }
+// =================================================
+// ARTIST COMBO
+// =================================================
 
+export async function getArtistComboCount(
+    username: string,
+    artist: string,
+    maxTracks = 1000
+): Promise<number> {
+    const normalizedArtist =
+        artist
+            .trim()
+            .toLowerCase();
+
+    const pageSize = 200;
+
+    let page = 1;
+    let checked = 0;
+    let plays = 0;
+
+    while (
+        checked < maxTracks
+    ) {
+        const remaining =
+            maxTracks -
+            checked;
+
+        const limit =
+            Math.min(
+                pageSize,
+                remaining
+            );
+
+        const data =
+            (await requestLastFm({
+                method:
+                    "user.getRecentTracks",
+
+                user:
+                    username,
+
+                limit:
+                    limit.toString(),
+
+                page:
+                    page.toString(),
+
+                extended:
+                    "1",
+            })) as {
+                recenttracks?: {
+                    track?:
+                    | RawRecentTrack
+                    | RawRecentTrack[];
+
+                    "@attr"?: {
+                        page?: string;
+                        totalPages?: string;
+                    };
+                };
+            };
+
+        const rawTracks =
+            data.recenttracks
+                ?.track;
+
+        if (!rawTracks) {
+            break;
+        }
+
+        const tracks =
+            (
+                Array.isArray(
+                    rawTracks
+                )
+                    ? rawTracks
+                    : [rawTracks]
+            )
+                .map(
+                    parseRecentTrack
+                )
+                .filter(
+                    (
+                        track
+                    ): track is RecentTrack =>
+                        track !== null
+                );
+
+        if (
+            tracks.length === 0
+        ) {
+            break;
+        }
+
+        for (
+            const track
+            of tracks
+        ) {
+            // Gowon's combo count does not count
+            // the currently-playing, unscrobbled track.
+            if (
+                track.nowPlaying
+            ) {
+                continue;
+            }
+
+            checked += 1;
+
+            const trackArtist =
+                track.artist
+                    .trim()
+                    .toLowerCase();
+
+            if (
+                trackArtist !==
+                normalizedArtist
+            ) {
+                return plays;
+            }
+
+            plays += 1;
+
+            if (
+                checked >=
+                maxTracks
+            ) {
+                return plays;
+            }
+        }
+
+        const totalPages =
+            Number(
+                data.recenttracks
+                    ?.[
+                    "@attr"
+                ]
+                    ?.totalPages ??
+                page
+            );
+
+        if (
+            page >=
+            totalPages
+        ) {
+            break;
+        }
+
+        page += 1;
+    }
+
+    return plays;
+}
 // =================================================
 // TRACK INFO
 // =================================================

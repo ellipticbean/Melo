@@ -24,6 +24,7 @@ import {
 
 import {
     ALBUM_FM_CONFIG,
+    COMBO_FM_CONFIG,
     COMPACT_FM_CONFIG,
     FM_COMPONENTS,
     FM_COMPONENT_LABELS,
@@ -35,6 +36,7 @@ import {
 
 import {
     getAlbumInfo,
+    getArtistComboCount,
     getArtistInfo,
     getLastFmUser as fetchLastFmUser,
     getRecentTrack,
@@ -200,6 +202,20 @@ const commands = [
         .setName("fmc")
         .setDescription(
             "Display a compact now playing or last played track."
+        )
+        .toJSON(),
+
+    new SlashCommandBuilder()
+        .setName("fmcombo")
+        .setDescription(
+            "Display your now playing track with the current artist combo."
+        )
+        .toJSON(),
+
+    new SlashCommandBuilder()
+        .setName("npcombo")
+        .setDescription(
+            "Display your now playing track with the current artist combo."
         )
         .toJSON(),
 
@@ -1212,6 +1228,189 @@ client.on(
                                 Number(
                                     lastFmUser.playcount
                                 ),
+                        }
+                    );
+
+                const status =
+                    track.nowPlaying
+                        ? `Now playing for ${username}`
+                        : `Last scrobbled for ${username}`;
+
+                const embed =
+                    new EmbedBuilder()
+                        .setColor(
+                            0x000000
+                        )
+                        .setAuthor(
+                            lastFmUser.url
+                                ? {
+                                    name:
+                                        status,
+                                    url:
+                                        lastFmUser.url,
+                                }
+                                : {
+                                    name:
+                                        status,
+                                }
+                        )
+                        .setTitle(
+                            track.name
+                        )
+                        .setDescription(
+                            description
+                        );
+
+                if (track.url) {
+                    embed.setURL(
+                        track.url
+                    );
+                }
+
+                if (track.imageUrl) {
+                    embed.setThumbnail(
+                        track.imageUrl
+                    );
+                }
+
+                if (footerText) {
+                    embed.setFooter({
+                        text:
+                            footerText,
+                    });
+                }
+
+                await interaction.editReply({
+                    embeds: [
+                        embed,
+                    ],
+                });
+
+                return;
+            }
+            // =================================================
+            // /fmcombo + /npcombo
+            // =================================================
+
+            if (
+                interaction.commandName ===
+                "fmcombo" ||
+                interaction.commandName ===
+                "npcombo"
+            ) {
+                const username =
+                    getSavedLastFmUser(
+                        interaction.user.id
+                    );
+
+                if (!username) {
+                    await interaction.reply({
+                        content:
+                            "You haven't linked a Last.fm account yet. Use `/setuser username:` first.",
+                        flags:
+                            MessageFlags.Ephemeral,
+                    });
+
+                    return;
+                }
+
+                await interaction.deferReply();
+
+                const track =
+                    await getRecentTrack(
+                        username
+                    );
+
+                if (!track) {
+                    await interaction.editReply(
+                        `I couldn't find any recent tracks for **${username}**.`
+                    );
+
+                    return;
+                }
+
+                const [
+                    lastFmUser,
+                    artistInfo,
+                    comboCount,
+                ] =
+                    await Promise.all([
+                        fetchLastFmUser(
+                            username
+                        ),
+
+                        getArtistInfo(
+                            username,
+                            track.artist
+                        ).catch(
+                            (error) => {
+                                console.error(
+                                    "Could not load artist info:",
+                                    error
+                                );
+
+                                return null;
+                            }
+                        ),
+
+                        getArtistComboCount(
+                            username,
+                            track.artist
+                        ).catch(
+                            (error) => {
+                                console.error(
+                                    "Could not calculate artist combo:",
+                                    error
+                                );
+
+                                return 0;
+                            }
+                        ),
+                    ]);
+
+                const artistName =
+                    artistInfo?.name ??
+                    track.artist;
+
+                const artistDisplay =
+                    artistInfo?.url
+                        ? `[**${artistName}**](${artistInfo.url})`
+                        : `**${artistName}**`;
+
+                const description =
+                    `by ${artistDisplay}` +
+                    (
+                        track.album
+                            ? ` from *${track.album}*`
+                            : ""
+                    );
+
+                const footerText =
+                    renderFmFooter(
+                        COMBO_FM_CONFIG,
+                        {
+                            artistName,
+
+                            albumName:
+                                track.album,
+
+                            trackName:
+                                track.name,
+
+                            artistInfo,
+
+                            albumInfo:
+                                null,
+
+                            trackInfo:
+                                null,
+
+                            totalScrobbles:
+                                Number(
+                                    lastFmUser.playcount
+                                ),
+
+                            comboCount,
                         }
                     );
 
