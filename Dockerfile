@@ -4,7 +4,8 @@ WORKDIR /usr/src/app
 
 # Use the same locked dependency graph as CI.
 COPY package.json yarn.lock ./
-RUN npm install --global yarn@1.22.22 \
+RUN corepack enable \
+  && corepack prepare yarn@1.22.22 --activate \
   && yarn install --frozen-lockfile
 
 # Copy application source, then create safe build-time configuration placeholders.
