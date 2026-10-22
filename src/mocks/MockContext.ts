@@ -39,7 +39,13 @@ export class MockContext<
   }
 
   latestResponse<T extends string | MessageEmbed>(): T {
-    return this.responses[this.responses.length - 1] as T;
+    const response = this.responses[this.responses.length - 1] as any;
+    // Discord.js 13 may pass a MessagePayload object for text replies.
+    // Normalize it so tests can continue asserting the user-visible content.
+    if (response && typeof response === "object" && "content" in response) {
+      return response.content as T;
+    }
+    return response as T;
   }
 
   addResponse(response: string | MessageEmbed) {
