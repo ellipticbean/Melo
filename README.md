@@ -18,7 +18,7 @@ The main bot uses TypeScript, discord.js 13, TypeORM, PostgreSQL and Redis. The 
 - [Pantomime](https://github.com/gowon-bot/pantomime) — chart/image integration
 - [Supernova](https://github.com/gowon-bot/supernova) — supporting service
 
-The current Compose stack starts Melo, PostgreSQL, and Redis. Mirrorball, Lilac, and the other companion integrations still need their own configuration and deployment. See [the companion-service map](docs/COMPANION_SERVICES.md). For a prepared Ubuntu VPS path, see the [VPS deployment runbook](deploy/vps/README.md) and [cloud-init bootstrap](deploy/vps/cloud-init.yaml).
+The current Compose stack starts Melo, PostgreSQL, and Redis. Mirrorball, Lilac, and the other companion integrations still need their own configuration and deployment. See [the companion-service map](docs/COMPANION_SERVICES.md). For a **$0/month first attempt**, use the [Oracle Cloud Always Free runbook](deploy/oracle-free/README.md) and [ARM64 cloud-init bootstrap](deploy/oracle-free/cloud-init.yaml). A paid VPS fallback is documented in the [VPS runbook](deploy/vps/README.md).
 
 ## Development setup
 
