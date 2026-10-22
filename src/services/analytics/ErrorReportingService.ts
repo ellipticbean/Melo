@@ -1,10 +1,10 @@
 import { supernovaPassword, supernovaURL } from "../../../config.json";
 import { ClientError, ClientWarning } from "../../errors/errors";
-import { GowonContext } from "../../lib/context/Context";
+import { MeloContext } from "../../lib/context/Context";
 import { BaseService } from "../BaseService";
 import {
   ErrorReportPayload,
-  GowonErrorSeverity,
+  MeloErrorSeverity,
 } from "../supernova/supernovaTypes";
 
 export type ErrorWithSupernovaID = Error & {
@@ -13,7 +13,7 @@ export type ErrorWithSupernovaID = Error & {
 
 export class ErrorReportingService extends BaseService {
   public async reportError(
-    ctx: GowonContext,
+    ctx: MeloContext,
     e: Error
   ): Promise<string | undefined> {
     if (this.alreadyReportedToSupernova(e)) {
@@ -41,11 +41,11 @@ export class ErrorReportingService extends BaseService {
     }
   }
 
-  private generatePayload(ctx: GowonContext, e: Error): ErrorReportPayload {
+  private generatePayload(ctx: MeloContext, e: Error): ErrorReportPayload {
     return {
       kind: e.name,
       message: e.message,
-      application: "Gowon",
+      application: "Melo",
       userID: ctx.author.id,
       severity: this.getSeverity(e),
       stack: e.stack ?? "(no stack)",
@@ -54,7 +54,7 @@ export class ErrorReportingService extends BaseService {
   }
 
   private generateModifyPayload(
-    ctx: GowonContext
+    ctx: MeloContext
   ): Partial<ErrorReportPayload> {
     return {
       userID: ctx.author.id,
@@ -62,7 +62,7 @@ export class ErrorReportingService extends BaseService {
     };
   }
 
-  private generateTags(ctx: GowonContext): ErrorReportPayload["tags"] {
+  private generateTags(ctx: MeloContext): ErrorReportPayload["tags"] {
     return [
       { key: "command", value: ctx.command.name },
       { key: "guild", value: ctx.guild?.id ?? "DM" },
@@ -70,12 +70,12 @@ export class ErrorReportingService extends BaseService {
     ];
   }
 
-  private getSeverity(e: Error): GowonErrorSeverity {
+  private getSeverity(e: Error): MeloErrorSeverity {
     return e instanceof ClientWarning
-      ? GowonErrorSeverity.WARNING
+      ? MeloErrorSeverity.WARNING
       : e instanceof ClientError
-      ? GowonErrorSeverity.EXCEPTION
-      : GowonErrorSeverity.ERROR;
+      ? MeloErrorSeverity.EXCEPTION
+      : MeloErrorSeverity.ERROR;
   }
 
   private getURL(path: string): string {

@@ -86,8 +86,8 @@ export class FishyQuest extends BaseEntity {
       start +
       `${bold(
         rarity.isTrash()
-          ? `pieces of ${FishyRarityEmojis.trash.base}Everyday finds`
-          : `${rarity.emoji.base}${rarity.name} fishy`
+          ? `${FishyRarityEmojis.trash.base} everyday finds`
+          : `${rarity.emoji.base} ${rarity.name} discoveries`
       )}`
     );
   }
