@@ -15,7 +15,7 @@
     "psql": "psql melo",
     "test": "jest",
     "typeorm": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js",
-    "migrate": "yarn typeorm migration:run"
+    "migrate": "yarn typeorm migration:run -d ormconfig.ts"
   },
   "dependencies": {
     "@absinthe/socket": "^0.2.1",
