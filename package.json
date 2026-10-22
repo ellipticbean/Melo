@@ -14,7 +14,7 @@
     "start:watch": "nodemon dist/src/index.js",
     "psql": "psql melo",
     "test": "jest",
-    "typeorm": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js",
+    "typeorm": "ts-node --transpile-only -r tsconfig-paths/register ./node_modules/typeorm/cli.js",
     "migrate": "yarn typeorm migration:run -d ormconfig.ts"
   },
   "dependencies": {
