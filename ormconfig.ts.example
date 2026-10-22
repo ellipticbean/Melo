@@ -33,7 +33,7 @@ export const gowonDatabase = new DataSource({
   logging: false,
   synchronize: false,
   name: "default",
-  migrations: ["src/database/migration/**/*.js"],
+  migrations: ["src/database/migration/**/*.ts"],
 
   entities: [
     AlternateAlbumCover,
