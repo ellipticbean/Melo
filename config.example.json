@@ -22,7 +22,7 @@
   "spotifyClientID": "Get this from the spotify application dashboard",
   "spotifyClientSecret": "Get this from the spotify application dashboard",
 
-  "mirrorballURL": "http://localhost:8080/graphql",
+  "mirrorballURL": "http://host.docker.internal:8080/graphql",
   "mirrorballPassword": "this needs to match the MIRRORBALL_PASSWORD .env variable in Mirrorball",
 
   "gowonAPIPort": 3000,
@@ -30,12 +30,12 @@
   "gowonWebsiteURL": "http://localhost:3001",
   "spotifyRedirectHost": "http://localhost:3000 <-- This should be the public Melo API URL",
 
-  "lilacURL": "http://localhost:4000/graphql",
-  "lilacWebsocket": "ws://localhost:4000/socket",
+  "lilacURL": "http://host.docker.internal:4000/graphql",
+  "lilacWebsocket": "ws://host.docker.internal:4000/socket",
   "lilacPassword": "this needs to match the 'password' config in Lilac",
 
   "redisHost": "localhost",
 
-  "supernovaURL": "http://localhost:8082/",
+  "supernovaURL": "http://host.docker.internal:8082/",
   "supernovaPassword": "this needs to match the 'password' config in Supernova"
 }

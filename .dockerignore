@@ -1,2 +1,11 @@
+.git
+.github
 node_modules
-npm-debug.log
+dist
+.env
+.env.*
+!.env.example
+config.json
+ormconfig.ts
+src/lib/specialUsers.json
+*.log

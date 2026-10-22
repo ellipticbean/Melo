@@ -25,12 +25,11 @@ import { User } from "./src/database/entity/User";
 export const gowonDatabase = new DataSource({
   migrationsTableName: "migrations",
   type: "postgres",
-  // Change to localhost to run migrations
-  host: "host.docker.internal",
-  port: 5432,
-  username: "your username here",
-  password: "your password here",
-  database: "melo",
+  host: process.env.DB_HOST || "localhost",
+  port: Number(process.env.DB_PORT || 5432),
+  username: process.env.DB_USER || process.env.POSTGRES_USER || "melo",
+  password: process.env.DB_PASSWORD || process.env.POSTGRES_PASSWORD || "change-me",
+  database: process.env.DB_NAME || "melo",
   logging: false,
   synchronize: false,
   name: "default",

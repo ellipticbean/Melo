@@ -22,7 +22,7 @@ The original `docker-compose.yml` starts the bot and Redis only. PostgreSQL and 
 
 ## Development setup
 
-Use Node.js 18 for the initial compatibility checks and Yarn Classic.
+Use Node.js 22 for local development and deployment; CI checks Node.js 18 and 22. Use Yarn Classic.
 
 1. Install dependencies: `yarn install --frozen-lockfile`
 2. Copy `config.example.json` to `config.json`, fill in your own credentials, and set `lastFMStatusUsername` to a valid Last.fm username for the status command's latency check.
@@ -33,6 +33,20 @@ Use Node.js 18 for the initial compatibility checks and Yarn Classic.
 7. Build with `yarn build`; start locally with `yarn start`.
 
 Never commit `config.json`, `ormconfig.ts`, `specialUsers.json`, bot tokens, API keys, OAuth secrets, or database passwords. The example files are safe templates, not working credentials. Do not connect Melo to the original operator's live database.
+
+## Docker deployment
+
+The Docker image builds from safe example files and does not bake your local configuration or secrets into the image.
+
+1. Copy `.env.example` to `.env` and set a strong `POSTGRES_PASSWORD`.
+2. Copy `config.example.json` to `config.json`, then set your Discord token/client ID and Last.fm API credentials.
+3. Copy `src/lib/specialUsers.example.json` to `src/lib/specialUsers.json`; set your own Discord IDs and name your bot entry `melo`.
+4. Keep `redisHost` set to `redis` for Compose. Set `lastFMStatusUsername` for the status command. Configure `mirrorballURL`, `lilacURL`, `lilacWebsocket`, passwords, and `supernovaURL` to match the companion services you have running. The defaults use `host.docker.internal` to reach services running on the host; use service names if you attach the companions to the same Docker network.
+5. Start PostgreSQL and Redis: `docker compose up -d postgres redis`.
+6. Run migrations: `docker compose run --rm melo yarn migrate`.
+7. Start Melo: `docker compose up --build -d melo`; follow logs with `docker compose logs -f melo`.
+
+The main bot still requires the companion indexing services Mirrorball and Lilac to be reachable at startup. The Compose file provides PostgreSQL and Redis, but does not pretend to deploy those companion projects automatically. Before enabling Spotify OAuth or public webhooks, set `spotifyRedirectHost` and API/website URLs to your real public HTTPS address.
 
 ## Upstream source and attribution
 

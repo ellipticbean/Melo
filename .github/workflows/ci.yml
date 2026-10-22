@@ -13,7 +13,12 @@ permissions:
 
 jobs:
   build-and-test:
+    name: build-and-test (Node ${{ matrix.node-version }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [18, 22]
     steps:
       - name: Check out source
         uses: actions/checkout@v4
@@ -21,7 +26,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: ${{ matrix.node-version }}
           cache: yarn
 
       - name: Install Yarn Classic
@@ -41,3 +46,6 @@ jobs:
 
       - name: Run tests
         run: yarn test --runInBand
+
+      - name: Build Docker image
+        run: docker build -t melo:ci .
