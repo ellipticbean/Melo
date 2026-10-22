@@ -26,8 +26,8 @@
   "mirrorballPassword": "this needs to match the MIRRORBALL_PASSWORD .env variable in Mirrorball",
 
   "gowonAPIPort": 3000,
-  "gowonAPIURL": "http://localhost:3000 <-- This is where Melo should send webhooks",
-  "gowonWebsiteURL": "http://localhost:3001 <-- This is where the Melo API should redirect users",
+  "gowonAPIURL": "http://localhost:3000",
+  "gowonWebsiteURL": "http://localhost:3001",
   "spotifyRedirectHost": "http://localhost:3000 <-- This should be the public Melo API URL",
 
   "lilacURL": "http://localhost:4000/graphql",

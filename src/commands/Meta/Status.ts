@@ -12,7 +12,7 @@ import { LilacAPIService } from "../../services/lilac/LilacAPIService";
 
 type Latencies = {
   discord?: Stopwatch;
-  lastfm?: Stopwatch;
+  lastfm?: Stopwatch | null;
   mirrorball?: Stopwatch;
   lilac?: Stopwatch;
 };
@@ -50,8 +50,8 @@ export default class Status extends Command {
   }
 
   private displayLatencies(latencies: Latencies): LineConsolidator {
-    const displayLatency = (latency: Stopwatch | undefined) =>
-      italic(latency ? this.displayLatency(latency) : "pinging");
+    const displayLatency = (latency: Stopwatch | undefined | null) =>
+      italic(latency === null ? "not configured" : latency ? this.displayLatency(latency) : "pinging");
 
     return new LineConsolidator().addLines(
       subsubheader("Latency:"),
@@ -119,12 +119,16 @@ export default class Status extends Command {
     return stopwatch;
   }
 
-  private async lastFMLatency() {
-    const stopwatch = new Stopwatch();
-    if (!config.lastFMStatusUsername) return stopwatch.zero();
+  private async lastFMLatency(): Promise<Stopwatch | null> {
+    if (!config.lastFMStatusUsername) return null;
 
+    const stopwatch = new Stopwatch();
     stopwatch.start();
-    await this.lastFMService.nowPlaying(this.ctx, config.lastFMStatusUsername);
+    try {
+      await this.lastFMService.nowPlaying(this.ctx, config.lastFMStatusUsername);
+    } catch {
+      return stopwatch.zero();
+    }
     stopwatch.stop();
     return stopwatch;
   }
