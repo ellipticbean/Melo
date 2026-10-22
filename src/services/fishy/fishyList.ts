@@ -78,8 +78,10 @@ export function findFishy(
     return typeof name === "string"
       ? equalize(f.name) === equalize(name) || equalize(f.id) === equalize(name)
       : isByEmoji(name)
-      ? extractEmojiID(f.emoji) === extractEmojiID(name.byEmoji) ||
-        extractEmojiID(f.emojiInWater) === extractEmojiID(name.byEmoji)
+      ? (extractEmojiID(f.emoji) || f.emoji) ===
+          (extractEmojiID(name.byEmoji) || name.byEmoji) ||
+        (extractEmojiID(f.emojiInWater) || f.emojiInWater) ===
+          (extractEmojiID(name.byEmoji) || name.byEmoji)
       : f.id === name.byID;
   });
 }
