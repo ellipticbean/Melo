@@ -22,7 +22,7 @@ The current Compose stack starts Melo, PostgreSQL, and Redis. Mirrorball, Lilac,
 
 ## Development setup
 
-Use Node.js 22 for local development and deployment; CI checks Node.js 18 and 22. Use Yarn Classic. The TypeORM example loads `.env` for local migration commands.
+Use Node.js 22 for local development and deployment; CI checks Node.js 18 and 22. Use Yarn Classic. The TypeORM example loads `.env` for local migration commands. For a non-Docker local run, set `redisHost` to `localhost`; Compose uses `redis`.
 
 1. Copy `.env.example` to `.env` and set your PostgreSQL password, then install dependencies: `yarn install --frozen-lockfile`
 2. Copy `config.example.json` to `config.json`, fill in your own credentials, and set `lastFMStatusUsername` to a valid Last.fm username for the status command's latency check.
@@ -39,14 +39,14 @@ Never commit `config.json`, `ormconfig.ts`, `specialUsers.json`, bot tokens, API
 The Docker image builds from safe example files and does not bake your local configuration or secrets into the image.
 
 1. Copy `.env.example` to `.env` and set a strong `POSTGRES_PASSWORD`.
-2. Copy `config.example.json` to `config.json`, then set your Discord token/client ID and Last.fm API credentials.
+2. Copy `config.example.json` to `config.json`, then set your Discord token/client ID and Last.fm API credentials. Set `environment` to `production` before live use.
 3. Copy `src/lib/specialUsers.example.json` to `src/lib/specialUsers.json`; set your own Discord IDs and name your bot entry `melo`.
 4. Keep `redisHost` set to `redis` for Compose. Set `lastFMStatusUsername` for the status command. Configure `mirrorballURL`, `lilacURL`, `lilacWebsocket`, passwords, and `supernovaURL` to match the companion services you have running. The defaults use `host.docker.internal` to reach services running on the host; use service names if you attach the companions to the same Docker network.
 5. Start PostgreSQL and Redis: `docker compose up -d postgres redis`.
 6. Run migrations: `docker compose run --rm melo yarn migrate`.
 7. Start Melo: `docker compose up --build -d melo`; follow logs with `docker compose logs -f melo`.
 
-The main bot still requires the companion indexing services Mirrorball and Lilac to be reachable at startup. The Compose file provides PostgreSQL and Redis, but does not pretend to deploy those companion projects automatically. Before enabling Spotify OAuth or public webhooks, set `spotifyRedirectHost` and API/website URLs to your real public HTTPS address.
+The main bot probes Mirrorball and Lilac at startup but logs connection failures rather than aborting startup. Indexing and other dependent features will not work until those services are reachable. The Compose file provides PostgreSQL and Redis, but does not deploy those companion projects automatically. Before enabling Spotify OAuth or public webhooks, set `spotifyRedirectHost` and API/website URLs to your real public HTTPS address and put port 3000 behind a TLS reverse proxy.
 
 ## Upstream source and attribution
 

@@ -74,7 +74,7 @@ ${FishyRarities.SuperRare.emoji.base} _Super rare_ ${emDash} ${displayNumber(rar
 ${FishyRarities.Legendary.emoji.base} _Legendary_ ${emDash} ${displayNumber(rarityBreakdown.Legendary)} discoveries
 ${
   "special" in rarityBreakdown
-    ? `${FishyRarityEmojis.unknown.base} _Mythic_ ${emDash} ${displayNumber(
+    ? `${FishyRarityEmojis.mythic.base} _Mythic_ ${emDash} ${displayNumber(
         rarityBreakdown.special as string
       )} discoveries`
     : ""

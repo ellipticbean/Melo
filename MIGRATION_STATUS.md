@@ -23,7 +23,7 @@ No tagged release was returned by the repository releases endpoint. This migrati
 7. Validate CI on Node 18/22 and build the Docker image before considering any production deployment.
 
 ## Architecture notes
-The upstream package uses TypeScript 4.6, CommonJS output, discord.js 13, TypeORM, PostgreSQL, Redis, Docker Compose, and multiple configured companion-service URLs. Melo's Compose stack now provides the bot, PostgreSQL, and Redis. Mirrorball, Lilac, and other integrations still need separate configuration/deployment. Do not remove integrations simply because their services are not yet running.
+The upstream package uses TypeScript 4.6, CommonJS output, discord.js 13, TypeORM, PostgreSQL, Redis, Docker Compose, and multiple configured companion-service URLs. Melo's Compose stack now provides the bot, PostgreSQL, and Redis. Mirrorball, Lilac, and other integrations still need separate configuration/deployment. The bot logs failed Mirrorball/Lilac connections but can continue startup; dependent features will be unavailable until those services are reachable.
 
 ## Security
 - Never commit real bot tokens, Last.fm/Spotify secrets, GitHub tokens, database passwords, or live configuration.
@@ -31,4 +31,4 @@ The upstream package uses TypeScript 4.6, CommonJS output, discord.js 13, TypeOR
 - Do not deploy a production bot or migrate a production database until local build, configuration, and integration checks pass.
 
 ## Current phase
-Pinned Gowon source import and the first Frog Pond conversion are complete on `gowon-port`. The imported snapshot retains the upstream source, assets, tests, and AGPL license; Melo-facing commands, nature discovery data, and Unicode game visuals are implemented. CI has passed the test/build matrix on Node 18 and 22 and built the Docker image on the container-enabled run; final environment/migration refinements are being rechecked. The original Melo `main` branch remains untouched. Next: verify the latest CI run, open a draft PR, and finish companion-service deployment planning. No live bot deployment has been attempted.
+Pinned Gowon source import and the first Frog Pond conversion are complete on `gowon-port`. The imported snapshot retains the upstream source, assets, tests, and AGPL license; Melo-facing commands, nature discovery data, and Unicode game visuals are implemented. CI has passed on Node 18 and 22, including the test suite, TypeORM migrations against PostgreSQL, Docker image build, and Docker Compose configuration validation. The original Melo `main` branch remains untouched. Next: finish companion-service deployment planning and live configuration. Draft PR #1 is open for review. No live bot deployment has been attempted.
