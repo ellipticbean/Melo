@@ -1,0 +1,83 @@
+name: Melo CI
+
+on:
+  push:
+    branches:
+      - gowon-port
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    name: build-and-test (Node ${{ matrix.node-version }})
+    runs-on: ubuntu-latest
+    env:
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_USER: melo
+      DB_PASSWORD: test-password
+      DB_NAME: melo
+      POSTGRES_USER: melo
+      POSTGRES_PASSWORD: test-password
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: melo
+          POSTGRES_PASSWORD: test-password
+          POSTGRES_DB: melo
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U melo -d melo"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [18, 22]
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: yarn
+
+      - name: Install Yarn Classic
+        run: npm install --global yarn@1.22.22
+
+      - name: Install locked dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Create CI-only configuration files
+        run: |
+          cp config.example.json config.json
+          cp ormconfig.ts.example ormconfig.ts
+          cp src/lib/specialUsers.example.json src/lib/specialUsers.json
+
+      - name: Compile TypeScript
+        run: yarn build
+
+      - name: Run tests
+        run: yarn test --runInBand
+
+      - name: Run database migrations
+        run: yarn migrate
+
+      - name: Build Docker image
+        if: matrix.node-version == 22
+        run: docker build -t melo:ci .
+
+      - name: Validate Docker Compose configuration
+        if: matrix.node-version == 22
+        run: |
+          printf 'POSTGRES_PASSWORD=test-password\n' > .env
+          docker compose config --quiet

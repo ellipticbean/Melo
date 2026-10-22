@@ -1,0 +1,41 @@
+{
+  "environment": "development",
+
+  "lastFMAPIKey": "Get this from https://last.fm/api",
+  "lastFMSecret": "Get this from https://last.fm/api",
+  "lastFMStatusUsername": "",
+
+  "lastFMBotUsername": "use this if you want the bot to scrobble tracks (you will need to configure who it will scrobble yourself. By default, it's alpha testers in specialUsers.json)",
+  "lastFMBotPassword": "use this if you want the bot to scrobble tracks",
+  "lastFMBotSessionKey": "use this if you want the bot to scrobble tracks",
+
+  "discordToken": "Get this from the discord developer portal",
+  "discordClientID": "Get this from the discord developer portal",
+  "slashCommandTestGuildID": "If environment = development, it will register slash commands to this guild instead of globally",
+  "emojiVerificationChannelId": "The channel which Melo will use to verify emojis are accessible to the bot",
+
+  "defaultPrefix": "!",
+
+  "githubUsername": "Use this if you want Melo to create GitHub issues; provide a token with permission to open issues in ellipticbean/Melo.",
+  "githubAuthToken": "^ See https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/creating-a-personal-access-token for creating personal access tokens.",
+
+  "spotifyClientID": "Get this from the spotify application dashboard",
+  "spotifyClientSecret": "Get this from the spotify application dashboard",
+
+  "mirrorballURL": "http://host.docker.internal:8080/graphql",
+  "mirrorballPassword": "this needs to match the MIRRORBALL_PASSWORD .env variable in Mirrorball",
+
+  "gowonAPIPort": 3000,
+  "gowonAPIURL": "http://localhost:3000",
+  "gowonWebsiteURL": "http://localhost:3001",
+  "spotifyRedirectHost": "http://localhost:3000 <-- This should be the public Melo API URL",
+
+  "lilacURL": "http://host.docker.internal:4000/graphql",
+  "lilacWebsocket": "ws://host.docker.internal:4000/socket",
+  "lilacPassword": "this needs to match the 'password' config in Lilac",
+
+  "redisHost": "localhost",
+
+  "supernovaURL": "http://host.docker.internal:8082/",
+  "supernovaPassword": "this needs to match the 'password' config in Supernova"
+}
