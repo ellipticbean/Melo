@@ -1,0 +1,30 @@
+#cloud-config
+# Paste this file into the VPS provider's User Data field when creating
+# an Ubuntu 24.04 LTS server. This bootstraps the host only; it does not
+# clone Melo, create credentials, or launch any application containers.
+
+package_update: true
+package_upgrade: true
+
+packages:
+  - ca-certificates
+  - curl
+  - git
+  - docker.io
+  - docker-compose-v2
+  - ufw
+  - fail2ban
+
+runcmd:
+  # Enable the container runtime and SSH protection.
+  - [systemctl, enable, --now, docker]
+  - [systemctl, enable, --now, fail2ban]
+
+  # Add only the public endpoints needed for administration and future TLS.
+  # Never expose PostgreSQL (5432), Redis (6379), or Melo's internal port (3000).
+  - [ufw, allow, OpenSSH]
+  - [ufw, allow, 80/tcp]
+  - [ufw, allow, 443/tcp]
+  - [ufw, --force, enable]
+
+final_message: "Melo VPS base setup finished. SSH in, verify Docker/Compose and UFW, then follow deploy/vps/README.md."
