@@ -28,7 +28,7 @@ function discovery(
   level: 1 | 2 | 3 = 1,
   traits: FishyTrait[] = [FishyNameTrait.Adjective],
   displayMode: FishyDisplayMode = FishyDisplayMode.Floating,
-  article: "a" | "an" | "" = "a"
+  article: "a" | "an" | "the" | "" = "a"
 ): Fishy {
   const options = {
     id,
