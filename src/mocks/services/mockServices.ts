@@ -1,12 +1,14 @@
 import { Service, ServiceRegistry } from "../../services/ServicesRegistry";
 import { MockSpotifyService } from "./BaseSpotifyService";
 import { MockAnalyticsCollector } from "./MockAnalyticsCollector";
+import { MockErrorReportingService } from "./MockErrorReportingService";
 import { MockArgumentParsingService } from "./MockArgumentsParsingService";
 import { MockDiscordService } from "./MockDiscordService";
 import { MockGowonService } from "./MockGowonService";
 import { MockLastFMArguments } from "./MockLastFMArguments";
 import { MockLastFMService } from "./MockLastFMService";
 import { MockLilacUsersService } from "./MockLilacUsersService";
+import { MockLilacGuildsService } from "./MockLilacGuildsService";
 import { MockMentionsService } from "./MockMentionsService";
 import { MockMetaService } from "./MockMetaService";
 import { MockMirrorballService } from "./MockMirrorballService";
@@ -20,12 +22,14 @@ import { MockUsersService } from "./MockUsersService";
 
 export const mockServices: Service[] = [
   MockAnalyticsCollector,
+  MockErrorReportingService,
   MockArgumentParsingService,
   MockDiscordService,
   MockGowonService,
   MockLastFMArguments,
   MockLastFMService,
   MockLilacUsersService,
+  MockLilacGuildsService,
   MockMetaService,
   MockMentionsService,
   MockMirrorballService,
