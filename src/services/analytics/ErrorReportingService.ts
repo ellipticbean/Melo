@@ -1,10 +1,10 @@
 import { supernovaPassword, supernovaURL } from "../../../config.json";
 import { ClientError, ClientWarning } from "../../errors/errors";
-import { MeloContext } from "../../lib/context/Context";
+import { GowonContext } from "../../lib/context/Context";
 import { BaseService } from "../BaseService";
 import {
   ErrorReportPayload,
-  MeloErrorSeverity,
+  GowonErrorSeverity,
 } from "../supernova/supernovaTypes";
 
 export type ErrorWithSupernovaID = Error & {
@@ -13,7 +13,7 @@ export type ErrorWithSupernovaID = Error & {
 
 export class ErrorReportingService extends BaseService {
   public async reportError(
-    ctx: MeloContext,
+    ctx: GowonContext,
     e: Error
   ): Promise<string | undefined> {
     if (this.alreadyReportedToSupernova(e)) {
@@ -41,7 +41,7 @@ export class ErrorReportingService extends BaseService {
     }
   }
 
-  private generatePayload(ctx: MeloContext, e: Error): ErrorReportPayload {
+  private generatePayload(ctx: GowonContext, e: Error): ErrorReportPayload {
     return {
       kind: e.name,
       message: e.message,
@@ -54,7 +54,7 @@ export class ErrorReportingService extends BaseService {
   }
 
   private generateModifyPayload(
-    ctx: MeloContext
+    ctx: GowonContext
   ): Partial<ErrorReportPayload> {
     return {
       userID: ctx.author.id,
@@ -62,7 +62,7 @@ export class ErrorReportingService extends BaseService {
     };
   }
 
-  private generateTags(ctx: MeloContext): ErrorReportPayload["tags"] {
+  private generateTags(ctx: GowonContext): ErrorReportPayload["tags"] {
     return [
       { key: "command", value: ctx.command.name },
       { key: "guild", value: ctx.guild?.id ?? "DM" },
@@ -70,12 +70,12 @@ export class ErrorReportingService extends BaseService {
     ];
   }
 
-  private getSeverity(e: Error): MeloErrorSeverity {
+  private getSeverity(e: Error): GowonErrorSeverity {
     return e instanceof ClientWarning
-      ? MeloErrorSeverity.WARNING
+      ? GowonErrorSeverity.WARNING
       : e instanceof ClientError
-      ? MeloErrorSeverity.EXCEPTION
-      : MeloErrorSeverity.ERROR;
+      ? GowonErrorSeverity.EXCEPTION
+      : GowonErrorSeverity.ERROR;
   }
 
   private getURL(path: string): string {
