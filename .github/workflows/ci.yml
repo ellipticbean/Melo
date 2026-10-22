@@ -30,6 +30,12 @@ jobs:
       - name: Install locked dependencies
         run: yarn install --frozen-lockfile
 
+      - name: Create CI-only configuration files
+        run: |
+          cp config.example.json config.json
+          cp ormconfig.ts.example ormconfig.ts
+          cp src/lib/specialUsers.example.json src/lib/specialUsers.json
+
       - name: Compile TypeScript
         run: yarn build
 
