@@ -25,7 +25,7 @@ describe("Context", () => {
       payload: new Payload(new MockGuildlessMessage()),
     });
 
-    expect(() => context.requiredGuild).toThrow("run in a server");
+    expect(() => context.requiredGuild).toThrow("cannot be run in DMs");
   });
 
   test("should assign properties to the command when set", () => {

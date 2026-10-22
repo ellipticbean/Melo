@@ -43,7 +43,7 @@ export class NumberArgument<
 
     const numbers = this.getNumbersFromSplit(split);
 
-    return this.getElementFromIndex(numbers, this.options.index);
+    return this.getElementFromIndex(numbers, this.options.index, { number: true });
   }
 
   parseFromInteraction(

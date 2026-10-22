@@ -15,7 +15,7 @@ describe("Ping command", () => {
 
     await ping.execute(ctx);
 
-    const response = ctx.latestResponse<string>();
+    const response = ctx.latestResponse<{ content: string }>().content;
 
     expect(response).toMatch(/(pong|pang)/i);
   });
@@ -27,7 +27,7 @@ describe("Ping command", () => {
 
     await ping.execute(ctx);
 
-    const response = ctx.latestResponse<string>();
+    const response = ctx.latestResponse<{ content: string }>().content;
 
     expect(response).toBe("Pon 🏓");
   });

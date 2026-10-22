@@ -14,7 +14,7 @@ describe("Roll command", () => {
 
     await roll.execute(ctx);
 
-    const response = ctx.latestResponse<string>();
+    const response = ctx.latestResponse<{ content: string }>().content;
 
     expect(response).toBe("You rolled a **1**");
   });
