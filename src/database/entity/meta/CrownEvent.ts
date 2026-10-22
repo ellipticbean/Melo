@@ -22,10 +22,10 @@ export class CrownEvent extends BaseEntity {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @Column()
+  @Column("varchar")
   event!: CrownEventString;
 
-  @Column({ nullable: true })
+  @Column("varchar", { nullable: true })
   snatchedEvent!: SnatchedEventString;
 
   @ManyToOne((_) => Crown, (crown) => crown.history, { eager: true })
