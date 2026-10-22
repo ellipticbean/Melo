@@ -39,7 +39,7 @@ const args = {
 
 export class FieldGuide extends FishyChildCommand<typeof args> {
   idSeed = "le sserafim eunchae";
-  aliases = ["info", "wiki", "guide", "fg"];
+  aliases = ["info", "wiki", "guide", "fg", "pondguide"];
 
   description = "Look up a creature, plant, or other pond discovery";
   usage = ["name", ":emoji:"];
