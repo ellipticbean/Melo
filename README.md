@@ -18,7 +18,7 @@ The main bot uses TypeScript, discord.js 13, TypeORM, PostgreSQL and Redis. The 
 - [Pantomime](https://github.com/gowon-bot/pantomime) — chart/image integration
 - [Supernova](https://github.com/gowon-bot/supernova) — supporting service
 
-The original `docker-compose.yml` starts the bot and Redis only. PostgreSQL and the required companion services need their own configuration and deployment. See [the companion-service map](docs/COMPANION_SERVICES.md).
+The current Compose stack starts Melo, PostgreSQL, and Redis. Mirrorball, Lilac, and the other companion integrations still need their own configuration and deployment. See [the companion-service map](docs/COMPANION_SERVICES.md). See [the companion-service map](docs/COMPANION_SERVICES.md).
 
 ## Development setup
 

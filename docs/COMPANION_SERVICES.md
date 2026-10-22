@@ -7,7 +7,7 @@ This map is based on the pinned Gowon source and the linked companion repositori
 | Component | What it provides | Evidence / setup |
 | --- | --- | --- |
 | PostgreSQL | Persistent user, settings, crowns, game, and command data | `ormconfig.ts.example`; create a dedicated database and run TypeORM migrations. |
-| Redis | Runtime caching / interaction support | `docker-compose.yml` starts Redis; `src/setup.ts` initializes Redis. |
+| Redis | Runtime caching / interaction support | The included Compose stack provides Redis; `src/setup.ts` initializes it. |
 | Mirrorball | GraphQL indexing and cached Last.fm data | `src/setup.ts` pings Mirrorball at `mirrorballURL`; source README says to build the Mirrorball image from `gowon-bot/mirrorball`. |
 | Lilac | Indexing and Last.fm data API | `src/setup.ts` pings Lilac; upstream `gowon-bot/lilac` README requires its config and database migrations and works with Mirrorball. |
 | Discord application | Gateway bot and slash commands | `discordToken`, `discordClientID`; bot must be invited with the original required intents/permissions. |
@@ -27,7 +27,7 @@ This map is based on the pinned Gowon source and the linked companion repositori
 ## Fastest faithful deployment path
 
 1. Build the main bot and run its tests first.
-2. Provision a dedicated PostgreSQL database and Redis.
+2. Use the included Compose stack for PostgreSQL and Redis, or provision them separately.
 3. Bring up Mirrorball and Lilac using their own repositories and documented migrations/configuration.
 4. Set Melo-specific Discord and Last.fm credentials in an untracked runtime config.
 5. Start the bot in a test Discord server and validate startup, account linking, recent tracks, charts, friends, crowns, and help.
@@ -36,7 +36,7 @@ This map is based on the pinned Gowon source and the linked companion repositori
 ## Important boundaries
 
 - The main Gowon repository alone is not a complete self-contained production stack.
-- The original Docker Compose file only starts the bot and Redis; it does not provision PostgreSQL, Mirrorball, Lilac, the website, or all other integrations.
+- The current Melo Compose file starts the bot, PostgreSQL, and Redis; it does not provision Mirrorball, Lilac, the website, or all other integrations.
 - Never reuse the original operator's private production secrets, databases, or OAuth credentials.
 - Do not connect to any database containing the original bot's live user data without an explicit migration and authorization plan.
 - Keep the original upstream license and attribution. The bot source is AGPL-3.0-or-later.
