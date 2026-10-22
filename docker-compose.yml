@@ -1,0 +1,13 @@
+# NOTE: Ports should be specified in docker-compose.override.yml
+services:
+  gowon:
+    build: .
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - redis
+
+  redis:
+    image: "redis:alpine"
+
+

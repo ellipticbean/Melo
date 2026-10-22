@@ -1,4 +1,13 @@
 node_modules/
 dist/
-.env
+details
+specialUsers.json
 data/
+**/.DS_Store
+
+config.json
+ormconfig.ts
+
+docker-compose.*.yml
+Dockerfile.dev
+
