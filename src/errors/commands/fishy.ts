@@ -1,7 +1,6 @@
 import { Chance } from "chance";
 import { FishyProfile } from "../../database/entity/fishy/FishyProfile";
 import { bold, code } from "../../helpers/discord";
-import { emDash, quote } from "../../helpers/specialCharacters";
 import { EmojiMention } from "../../lib/context/arguments/parsers/EmojiParser";
 import { ClientError } from "../errors";
 
