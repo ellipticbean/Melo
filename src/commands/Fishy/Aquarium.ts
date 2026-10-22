@@ -4,12 +4,12 @@ import { FishyChildCommand } from "./FishyChildCommand";
 
 const args = {} satisfies ArgumentsMap;
 
-export class Aquarium extends FishyChildCommand<typeof args> {
+export class Habitat extends FishyChildCommand<typeof args> {
   idSeed = "csr seoyeon";
-  aliases = ["aq"];
+  aliases = ["habitat", "pondhabitat", "aq"];
 
   description =
-    "Take a look at your aquarium, and see the fishy swimming around!";
+    "Visit your pond habitat and see which discoveries are around.";
 
   arguments = args;
 
@@ -22,7 +22,7 @@ export class Aquarium extends FishyChildCommand<typeof args> {
     const aquarium = await this.fishyService.getAquarium(fishyProfile);
 
     const embed = this.minimalEmbed()
-      .setTitle("Your aquarium")
+      .setTitle("Your pond habitat")
       .transform(AquariumEmbed)
       .setAquarium(aquarium);
 

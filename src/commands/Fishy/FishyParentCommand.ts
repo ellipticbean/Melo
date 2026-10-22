@@ -1,52 +1,48 @@
 import { CommandGroup } from "../../lib/command/CommandGroup";
 import { ParentCommand } from "../../lib/command/ParentCommand";
-import { Aquarium } from "./Aquarium";
+import { Habitat } from "./Aquarium";
 import { Collection } from "./Collection";
 import { Cooldown } from "./Cooldown";
-import { Fish } from "./Fish";
-import { Fishypedia } from "./Fishypedia";
+import { Explore } from "./Fish";
+import { FieldGuide } from "./Fishypedia";
 import { Help } from "./Help";
 import { Profile } from "./Profile";
 import { Quest } from "./Quest";
-import { fishyAliases } from "./fishyAliases";
+import { pondAliases } from "./fishyAliases";
 
 export default class FishyParentCommand extends ParentCommand {
   idSeed = "le sserafim kazuha";
 
-  description = "Distract your mind from scrobbles and go fishing";
-  friendlyName = "fishy";
+  description = "Explore a quiet pond and build a nature journal";
+  friendlyName = "pond";
 
-  prefixes = ["fishy"];
-  default = () => new Fish();
+  prefixes = ["pond", "nature"];
+  default = () => new Explore();
   customHelp = Help;
 
-  category = "fishy";
+  category = "pond";
 
   noPrefixAliases = [
-    // Fish
-    "fish",
-    ...fishyAliases.filter((a) => a !== "fishy"),
-    // Fishypedia
-    "fishypedia",
-    // Cooldown
-    "fishytimer",
-    "fst",
-    "fc",
-    // Stats
-    "fishystats",
-    "fs",
-    "fishyprofile",
-    "fp",
-    //Aquarium
-    "aquarium",
-    "aq",
-    // Quest
-    "fishyquest",
-    "fq",
+    ...pondAliases.filter((a) => a !== "pond" && a !== "nature"),
+    "fieldguide",
+    "pondguide",
+    "pondcollection",
+    "pc",
+    "pondtimer",
+    "pt",
+    "pondstats",
+    "ps",
+    "pondprofile",
+    "pp",
+    "habitat",
+    "pondhabitat",
+    "pondquest",
+    "pq",
+    "pondhelp",
   ];
 
   children = new CommandGroup(
-    [Aquarium, Collection, Cooldown, Fish, Fishypedia, Help, Profile, Quest],
+    [Habitat, Collection, Cooldown, Explore, FieldGuide, Help, Profile, Quest],
     this.id
   );
 }

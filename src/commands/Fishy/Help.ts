@@ -4,37 +4,33 @@ import { FishyChildCommand } from "./FishyChildCommand";
 export class Help extends FishyChildCommand {
   idSeed = "csr duna";
 
-  description = "View help about the fishy minigame";
+  description = "View help about Frog Pond";
   usage = [""];
 
   slashCommand = true;
 
   async run() {
     const embed = new HelpEmbed()
-      .setHeader("Fishy Help")
+      .setHeader("Frog Pond")
       .setDescription(
         `
-Fishy is a fishing minigame built into Gowon!
-To get started, run \`${this.prefix}fishy\`.
+Frog Pond is a cozy nature-collecting game. Explore the water's edge to discover frogs, insects, plants, mushrooms, and rare pond curiosities.
 
 **Commands**
-\`${this.prefix}fishy\` - Go fishing!
-\`${this.prefix}fishypedia <fishy>\` - View information about a fishy
-\`${this.prefix}fishy collection\` - See your progress in collecting every fishy
-\`${this.prefix}fishy cooldown\` - See how long until you can fish again
-\`${this.prefix}fishy profile\` - See your fishy profile, including some fun stats
-\`${this.prefix}fishy stats\` - See some fun stats about your fishing career
-\`${this.prefix}fishy quest\` - Get a new quest, or see your current quest
-\`${this.prefix}aquarium\` - Check in on your fishy
+\`${this.prefix}pond\` — Explore the pond
+\`${this.prefix}fieldguide <name>\` — Look up a discovery
+\`${this.prefix}pond collection\` — Browse your nature journal
+\`${this.prefix}pond cooldown\` — See when you can explore again
+\`${this.prefix}pond profile\` — View your naturalist profile and stats
+\`${this.prefix}pond quest\` — Get a new nature quest or view your current one
+\`${this.prefix}habitat\` — See your pond habitat
 
-If you're a patron, you can add a fishy reminder to your nowplaying config with \`${this.prefix}npc add fishy-reminder\`
+If you're a patron, add a pond reminder to your now-playing config with \`${this.prefix}npc add pond-reminder\`.
 
-Happy fishing!
+Take your time, and see what turns up!
 `
       )
-      .setFooter(
-        `All fish you catch are kept in a sustainable and infinitely large aquarium :)`
-      );
+      .setFooter("Your discoveries are collected in a tiny, endlessly expanding pond journal.");
 
     await this.reply(embed);
   }

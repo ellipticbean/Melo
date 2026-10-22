@@ -13,10 +13,10 @@ const args = {
 
 export class Collection extends FishyChildCommand<typeof args> {
   idSeed = "csr yuna";
-  aliases = ["col", "completion", "com"];
+  aliases = ["col", "completion", "com", "journal"];
 
   description =
-    "Take a look at your fishy collection, and see what fishy you have yet to catch!";
+    "Browse your nature journal and see which discoveries you have yet to find.";
 
   arguments = args;
 
@@ -42,7 +42,7 @@ export class Collection extends FishyChildCommand<typeof args> {
     ];
 
     const embed = this.minimalEmbed().setTitle(
-      `${perspective.upper.possessive} fishy collection`
+      `${perspective.upper.possessive} nature journal`
     );
 
     const scrollingEmbed = new ScrollingListView(this.ctx, embed, {
@@ -52,7 +52,7 @@ export class Collection extends FishyChildCommand<typeof args> {
         return (
           `_${displayFishyCollectionProgress(
             collection
-          )} fishy collected_\n\n` +
+           )} discoveries collected_\n\n` +
           displayNumberedList(
             items.map((f) => {
               const owned = collection.includes(f.id);
@@ -66,8 +66,8 @@ export class Collection extends FishyChildCommand<typeof args> {
         );
       },
       overrides: {
-        itemName: "fishy to collect",
-        itemNamePlural: "fishy to collect",
+        itemName: "discovery to find",
+        itemNamePlural: "discoveries to find",
         totalItems: noHidden.length,
       },
     });

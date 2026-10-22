@@ -7,22 +7,20 @@ import { emDash } from "../../helpers/specialCharacters";
 import { LineConsolidator } from "../../lib/LineConsolidator";
 import { standardMentions } from "../../lib/context/arguments/mentionTypes/mentions";
 import { ArgumentsMap } from "../../lib/context/arguments/types";
-import { Emoji } from "../../lib/emoji/Emoji";
 import { displayNumber } from "../../lib/ui/displays";
 import { displayFishyLevelUp, displayRarity } from "../../lib/ui/fishy";
 import { Fishy } from "../../services/fishy/Fishy";
 import { FishyChildCommand } from "./FishyChildCommand";
-import { fishyAliases } from "./fishyAliases";
 
 const args = {
   ...standardMentions,
 } satisfies ArgumentsMap;
 
-export class Fish extends FishyChildCommand<typeof args> {
+export class Explore extends FishyChildCommand<typeof args> {
   idSeed = "le sserafim yunjin";
-  aliases = fishyAliases;
+  aliases = ["discover", "forage"];
 
-  description = "Grab a seat by the water and catch some fish :)";
+  description = "Explore the pond and discover a nature find";
 
   arguments = args;
 
@@ -39,36 +37,35 @@ export class Fish extends FishyChildCommand<typeof args> {
       throw new CantFishYetError(senderFishyProfile!);
     }
 
-    const fishyResult = await this.fishyService.fish(fishyProfile);
-    let fishyCatch: FishyCatch;
+    const discoveryResult = await this.fishyService.fish(fishyProfile);
+    let discoveryCatch: FishyCatch;
 
     if (mentionedFishyProfile) {
-      fishyCatch = await this.fishyService.saveFishy(
+      discoveryCatch = await this.fishyService.saveFishy(
         this.ctx,
-        fishyResult,
+        discoveryResult,
         mentionedFishyProfile,
         senderFishyProfile
       );
     } else {
-      fishyCatch = await this.fishyService.saveFishy(
+      discoveryCatch = await this.fishyService.saveFishy(
         this.ctx,
-        fishyResult,
+        discoveryResult,
         senderFishyProfile
       );
     }
 
-    const { fishy, weight, isNew } = fishyResult;
-
-    const weightDisplay = fishy.rarity.isTrash()
-      ? ``
-      : `\nIt weighs **${displayNumber(weight)}kg**`;
+    const { fishy, weight, isNew } = discoveryResult;
+    const sizeDisplay = fishy.rarity.isTrash()
+      ? ""
+      : `\nApproximate size: **${displayNumber(weight)} cm**`;
 
     await this.fishyService.updateCooldown(senderFishyProfile);
 
     const { quest, isNewQuest } = await this.getQuest(senderFishyProfile);
     const { madeQuestProgress, questCompleted } = await this.checkQuestProgress(
       quest,
-      fishyCatch,
+      discoveryCatch,
       senderFishyProfile
     );
 
@@ -76,30 +73,30 @@ export class Fish extends FishyChildCommand<typeof args> {
       ? ""
       : ` for ${mentionGuildMember(mentionedFishyProfile.user.discordID)}`;
 
-    const fishyDisplay = this.getFishyDisplay(fishy, isNew, giftDisplay);
+    const discoveryDisplay = this.getDiscoveryDisplay(fishy, isNew, giftDisplay);
 
     const description = new LineConsolidator().addLines(
-      fishyDisplay,
-      weightDisplay,
+      discoveryDisplay,
+      sizeDisplay,
       {
         shouldDisplay: !isNewQuest && questCompleted,
-        string: `\n✨ You have completed your current quest!\nRun \`${this.prefix}fq\` to get a new one.`,
+        string: `\n✨ You completed your current nature quest!\nRun \`${this.prefix}pond quest\` to get another.`,
       },
       {
         shouldDisplay: !isNewQuest && madeQuestProgress && !questCompleted,
-        string: `\n✨ This fishy counts towards your current quest!`,
+        string: `\n✨ This discovery counts toward your current quest!`,
       },
       {
         shouldDisplay: isNewQuest && questCompleted,
-        string: `\n✨ You got a new quest, and completed it! See \`${this.prefix}fq\` to get a new quest.`,
+        string: `\n✨ You received and completed a new quest! See \`${this.prefix}pond quest\`.`,
       },
       {
         shouldDisplay: isNewQuest && madeQuestProgress && !questCompleted,
-        string: `\n✨ You got a new quest, and this fishy counts towards it! Run \`${this.prefix}fq\` to see your new quest.`,
+        string: `\n✨ Your new quest already has progress. Run \`${this.prefix}pond quest\` to view it.`,
       },
       {
         shouldDisplay: isNewQuest && !madeQuestProgress,
-        string: `\n✨ You got a new quest! Run \`${this.prefix}fq\` to see it.`,
+        string: `\n✨ You received a new nature quest! Run \`${this.prefix}pond quest\` to see it.`,
       }
     );
 
@@ -108,7 +105,7 @@ export class Fish extends FishyChildCommand<typeof args> {
       .setDescription(description);
 
     if (isNew) {
-      embed.setFooter(`See ${this.prefix}fishypedia to learn about this fish`);
+      embed.setFooter(`See ${this.prefix}fieldguide to learn about this discovery`);
     }
 
     await this.reply(embed);
@@ -136,15 +133,12 @@ export class Fish extends FishyChildCommand<typeof args> {
 
   private async checkQuestProgress(
     quest: FishyQuest,
-    fishyCatch: FishyCatch,
-    fishyProfile: FishyProfile
-  ): Promise<{
-    madeQuestProgress: boolean;
-    questCompleted: boolean;
-  }> {
+    discovery: FishyCatch,
+    profile: FishyProfile
+  ): Promise<{ madeQuestProgress: boolean; questCompleted: boolean }> {
     const madeQuestProgress = this.fishyProgressionService.countsTowardsQuest(
       quest,
-      fishyCatch
+      discovery
     );
 
     let questCompleted = false;
@@ -152,19 +146,19 @@ export class Fish extends FishyChildCommand<typeof args> {
     if (madeQuestProgress) {
       questCompleted =
         await this.fishyProgressionService.incrementQuestProgress(
-          quest!,
-          fishyProfile
+          quest,
+          profile
         );
     }
 
     if (quest.isMilestone && quest.isCompleted) {
       const milestoneCompletedEmbed = this.minimalEmbed().setDescription(
-        displayFishyLevelUp(fishyProfile.level + 1)
+        displayFishyLevelUp(profile.level + 1)
       );
 
       await this.fishyProgressionService.incrementQuestProgress(
         quest,
-        fishyProfile
+        profile
       );
 
       this.reply(milestoneCompletedEmbed);
@@ -173,20 +167,15 @@ export class Fish extends FishyChildCommand<typeof args> {
     return { questCompleted, madeQuestProgress };
   }
 
-  private getFishyDisplay(
-    fishy: Fishy,
+  private getDiscoveryDisplay(
+    discovery: Fishy,
     isNew: boolean,
     giftDisplay: string
   ): string {
-    const unfish = this.extract.didMatch("unfish");
-    const phishy = this.extract.didMatch("phishy");
-
-    return `${fishy.emoji} ${unfish ? "Put" : phishy ? "Scammed" : "Caught"} ${
-      fishy.article
-    }${bold(fishy.name)}${isNew ? Emoji.newFishy : ""}${
-      unfish ? " back in the water" : ""
-    }${giftDisplay}${isNew && !giftDisplay ? "" : "!"}  ${italic(
-      emDash + " " + displayRarity(fishy.rarity)
+    return `${discovery.emoji} ${bold("Discovered")} ${discovery.article}${bold(
+      discovery.name
+    )}${isNew ? " ✨" : ""}${giftDisplay}${isNew && !giftDisplay ? "" : "!"}  ${italic(
+      emDash + " " + displayRarity(discovery.rarity)
     )}`;
   }
 }

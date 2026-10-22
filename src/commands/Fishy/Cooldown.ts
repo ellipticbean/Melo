@@ -7,9 +7,9 @@ const args = {} satisfies ArgumentsMap;
 
 export class Cooldown extends FishyChildCommand<typeof args> {
   idSeed = "csr geumhee";
-  aliases = ["timer", "fishytimer", "fst", "fc"];
+  aliases = ["pondtimer", "pt"];
 
-  description = "See when you can fish next";
+  description = "See when you can explore the pond again";
 
   arguments = args;
 
@@ -23,7 +23,7 @@ export class Cooldown extends FishyChildCommand<typeof args> {
     if (!fishyProfile.canFish()) {
       await this.reply(
         this.minimalEmbed().setDescription(
-          `You can fish again in ${bold(fishyProfile.getCooldownTime())}.`
+          `You can explore again in ${bold(fishyProfile.getCooldownTime())}.`
         )
       );
     } else {
@@ -35,11 +35,11 @@ export class Cooldown extends FishyChildCommand<typeof args> {
 
   private pickCanFishMessage(): string {
     return Chance().pickone([
-      "✨ Good news! You can fish **now**.",
-      "🐠 You see fish in the water, you can fish **now**!",
-      "🐟 You see fish in the water, you can fish **now**!",
-      "🐡 You see fish in the water, you can fish **now**!",
-      "🎣 You can fish **now**!",
+      "✨ Good news! You can explore the pond **now**.",
+      "🐸 The pond is lively; you can explore **now**!",
+      "🪷 The water lilies are swaying; you can explore **now**!",
+      "🪲 Something is buzzing near the reeds; you can explore **now**!",
+      "🌿 The pond is ready for another visit **now**!",
     ]);
   }
 }

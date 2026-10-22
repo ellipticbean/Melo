@@ -28,8 +28,8 @@ type FishyOptions = Partial<GetMentionsOptions> & {
 export abstract class FishyChildCommand<
   T extends ArgumentsMap = ArgumentsMap
 > extends BaseChildCommand<T> {
-  parentName = "fishy";
-  category = "fishy";
+  parentName = "pond";
+  category = "pond";
 
   fishyService = ServiceRegistry.get(FishyService);
   fishyProgressionService = ServiceRegistry.get(FishyProgressionService);

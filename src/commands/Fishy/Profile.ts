@@ -17,9 +17,9 @@ const args = {
 
 export class Profile extends FishyChildCommand<typeof args> {
   idSeed = "csr sihyeon";
-  aliases = ["stats", "fishystats", "fs", "fishyprofile", "fp"];
+  aliases = ["stats", "pondstats", "ps", "pondprofile", "pp"];
 
-  description = "See a user's fishy profile";
+  description = "See a user's naturalist profile";
 
   arguments = args;
 
@@ -30,71 +30,53 @@ export class Profile extends FishyChildCommand<typeof args> {
       autoCreateFishyProfile: false,
     });
 
-    const [
-      giftsGiven,
-      giftsReceived,
-      biggestFishy,
-      rarityBreakdown,
-      collection,
-    ] = await Promise.all([
-      this.fishyService.countGiftsGiven(fishyProfile.user.id),
-      this.fishyService.countGiftsReceived(fishyProfile.user.id),
-      this.fishyService.getBiggestFishy(fishyProfile.user.id),
-      this.fishyService.rarityBreakdown(fishyProfile),
-      this.fishyService.getCollection(fishyProfile),
-    ]);
+    const [giftsGiven, giftsReceived, biggestFind, rarityBreakdown, collection] =
+      await Promise.all([
+        this.fishyService.countGiftsGiven(fishyProfile.user.id),
+        this.fishyService.countGiftsReceived(fishyProfile.user.id),
+        this.fishyService.getBiggestFishy(fishyProfile.user.id),
+        this.fishyService.rarityBreakdown(fishyProfile),
+        this.fishyService.getCollection(fishyProfile),
+      ]);
+
+    const averageSize = fishyProfile.timesFished
+      ? displayNumber(fishyProfile.totalWeight / fishyProfile.timesFished, "cm", true)
+      : "—";
+    const biggestDisplay = biggestFind
+      ? `${biggestFind.weight} cm (${italic(biggestFind.fishy.name)} on ${displayDate(biggestFind.fishedAt)})`
+      : "No discoveries yet";
 
     const embed = this.minimalEmbed().setDescription(`
-Level **${fishyProfile.level}** fisher ${emDash} _Fishing since ${displayDate(
+Level **${fishyProfile.level}** naturalist ${emDash} _Exploring since ${displayDate(
       fishyProfile.createdAt
     )} (${ago(fishyProfile.createdAt)})_
-${displayNumber(fishyProfile.questsCompleted, "quest")} completed ${emDash} _${
-      fishyQuestLevelSize - (fishyProfile.questsCompleted % fishyQuestLevelSize)
-    } until next level_
-  
-**Times fished**: ${displayNumber(fishyProfile.timesFished)} (${displayNumber(
+${displayNumber(fishyProfile.questsCompleted, "quest")} completed ${emDash} _${fishyQuestLevelSize - (fishyProfile.questsCompleted % fishyQuestLevelSize)} until next level_
+
+**Discoveries made**: ${displayNumber(fishyProfile.timesFished)} (${displayNumber(
       fishyProfile.totalWeight,
-      "kg",
+      "cm",
       true
-    )} in total)
+    )} total size)
 **Gifts**: ${giftsGiven} given / ${giftsReceived} received ${emDash} _${
       giftsReceived ? calculatePercent(giftsGiven, giftsReceived, 0) : "∞"
     }% ratio_
 
-**Biggest fishy**: ${biggestFishy?.weight}kg (${italic(
-      biggestFishy!.fishy.name
-    )} on ${displayDate(biggestFishy!.fishedAt)})
-**Average weight**: ${displayNumber(
-      fishyProfile.totalWeight / fishyProfile.timesFished,
-      "kg",
-      true
-    )}
-**Fishy caught**: ${displayFishyCollectionProgress(collection)}
+**Largest discovery**: ${biggestDisplay}
+**Average size**: ${averageSize}
+**Nature journal**: ${displayFishyCollectionProgress(collection)} discoveries
 
-**Rarity breakdown:**
-${FishyRarities.Trash.emoji.base} _Trash_ ${emDash} ${displayNumber(
-      rarityBreakdown.Trash
-    )} trashy
-${FishyRarities.Common.emoji.base} _Common_ ${emDash} ${displayNumber(
-      rarityBreakdown.Common
-    )} fishy
-${FishyRarities.Uncommon.emoji.base} _Uncommon_ ${emDash} ${displayNumber(
-      rarityBreakdown.Uncommon
-    )} fishy
-${FishyRarities.Rare.emoji.base} _Rare_ ${emDash} ${displayNumber(
-      rarityBreakdown.Rare
-    )} fishy
-${FishyRarities.SuperRare.emoji.base} _Super rare_ ${emDash} ${displayNumber(
-      rarityBreakdown.SuperRare
-    )} fishy
-${FishyRarities.Legendary.emoji.base} _Legendary_ ${emDash} ${displayNumber(
-      rarityBreakdown.Legendary
-    )} fishy
+**Discovery rarity breakdown:**
+${FishyRarities.Trash.emoji.base} _Everyday finds_ ${emDash} ${displayNumber(rarityBreakdown.Trash)} finds
+${FishyRarities.Common.emoji.base} _Common_ ${emDash} ${displayNumber(rarityBreakdown.Common)} discoveries
+${FishyRarities.Uncommon.emoji.base} _Uncommon_ ${emDash} ${displayNumber(rarityBreakdown.Uncommon)} discoveries
+${FishyRarities.Rare.emoji.base} _Rare_ ${emDash} ${displayNumber(rarityBreakdown.Rare)} discoveries
+${FishyRarities.SuperRare.emoji.base} _Super rare_ ${emDash} ${displayNumber(rarityBreakdown.SuperRare)} discoveries
+${FishyRarities.Legendary.emoji.base} _Legendary_ ${emDash} ${displayNumber(rarityBreakdown.Legendary)} discoveries
 ${
   "special" in rarityBreakdown
-    ? `${FishyRarityEmojis.unknown.base} _Special_ ${emDash} ${displayNumber(
+    ? `${FishyRarityEmojis.unknown.base} _Mythic_ ${emDash} ${displayNumber(
         rarityBreakdown.special as string
-      )} fishy`
+      )} discoveries`
     : ""
 }
 `);
