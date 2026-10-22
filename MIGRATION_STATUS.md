@@ -31,4 +31,4 @@ The upstream package uses TypeScript 4.6, CommonJS output, discord.js 13, TypeOR
 - Do not deploy a production bot or migrate a production database until local build, configuration, and integration checks pass.
 
 ## Current phase
-Prepare a source import on `gowon-port`. No changes are made to `main` and no live deployment is attempted by this import.
+Pinned Gowon source import is complete on `gowon-port`. The imported snapshot contains 1,143 repository-tree entries, including the original source, assets, configuration examples, Docker setup, tests, and AGPL license. The original Melo `main` branch remains untouched. Next: establish CI/build status, map companion-service requirements, then rebrand only after the baseline is understood. No live deployment has been attempted.
