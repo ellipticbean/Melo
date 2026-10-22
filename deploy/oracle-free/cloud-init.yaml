@@ -1,0 +1,28 @@
+#cloud-config
+# Oracle Cloud Always Free: Ubuntu 24.04 ARM64 / Ampere A1.
+# Host bootstrap only: no repository checkout, credentials, or application deployment.
+# Only use this with an Always Free-eligible VM; this file does not enforce billing limits.
+
+package_update: true
+package_upgrade: true
+
+packages:
+  - ca-certificates
+  - curl
+  - git
+  - docker.io
+  - docker-compose-v2
+  - ufw
+  - fail2ban
+
+runcmd:
+  - [systemctl, enable, --now, docker]
+  - [systemctl, enable, --now, fail2ban]
+  # OCI's subnet security list / NSG must also allow SSH.
+  # Keep database, Redis, and bot application ports private.
+  - [ufw, allow, OpenSSH]
+  - [ufw, allow, 80/tcp]
+  - [ufw, allow, 443/tcp]
+  - [ufw, --force, enable]
+
+final_message: "Melo Oracle host bootstrap finished. SSH in, verify Docker/Compose and architecture, then follow deploy/oracle-free/README.md."
