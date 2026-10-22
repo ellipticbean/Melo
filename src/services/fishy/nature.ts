@@ -28,7 +28,7 @@ function discovery(
   level: 1 | 2 | 3 = 1,
   traits: FishyTrait[] = [FishyNameTrait.Adjective],
   displayMode: FishyDisplayMode = FishyDisplayMode.Floating,
-  article: "a" | "an" | "the" | "" = "a"
+  article: "a" | "an" | "" = "a"
 ): Fishy {
   const options = {
     id,
@@ -109,5 +109,5 @@ export const legendaryFishies = [
 export const specialFishies = [
   discovery("moon-crowned-frog", "Moon-Crowned Frog", "Anura lunaris", mythicRarity, "🐸", 6, 12, "A mythical frog wearing a crown of moonlight.", 3, [FishyNameTrait.Adjective]),
   discovery("tiny-pond-dragon", "Tiny Pond Dragon", "Draco palustris", mythicRarity, "🐉", 12, 24, "A miniature dragon that naps beneath lily pads.", 3, [FishyNameTrait.Adjective]),
-  discovery("first-lily", "The First Lily", "Nymphaea prima", mythicRarity, "🪷", 12, 28, "An ancient lily said to have bloomed before the pond had a name.", 3, [FishyNameTrait.Adjective], FishyDisplayMode.Floating, "the"),
+  discovery("first-lily", "The First Lily", "Nymphaea prima", mythicRarity, "🪷", 12, 28, "An ancient lily said to have bloomed before the pond had a name.", 3, [FishyNameTrait.Adjective], FishyDisplayMode.Floating, ""),
 ];
