@@ -35,7 +35,7 @@ export class OmitTriangularBracketsFromPrefixError extends ClientError {
 
   constructor() {
     super(
-      "Please omit the triangular brackets!\neg. `@Gowon prefix <!>` should be `@Gowon prefix !`"
+      "Please omit the triangular brackets!\neg. `@Melo prefix <!>` should be `@Melo prefix !`"
     );
   }
 }

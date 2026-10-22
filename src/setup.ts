@@ -41,9 +41,8 @@ export const client = new GowonClient(
       status: "online",
       activities: [
         {
-          name: "One & Only",
+          name: "your scrobbles",
           type: "LISTENING",
-          url: "https://gowon.bot",
         },
       ],
     },
@@ -184,11 +183,9 @@ async function logStartup(func: () => any, logItem: string): Promise<void> {
 
 const asciiArt = `
 
-.d8888b.                                           
-d88P  Y88b                                          
-888    888                                          
-888         .d88b.  888  888  888  .d88b.  88888b.  
-888  88888 d88""88b 888  888  888 d88""88b 888 "88b 
-888    888 888  888 888  888  888 888  888 888  888 
-Y88b  d88P Y88..88P Y88b 888 d88P Y88..88P 888  888 
- "Y8888P88  "Y88P"   "Y8888888P"   "Y88P"  888  888  고원  `;
+M   M EEEE L    OOO
+MM MM E    L    O O
+M M M EEE  L    O O
+M   M E    L    O O
+M   M EEEE LLLL OOO
+`;

@@ -51,14 +51,6 @@ export default class Cover extends LastFMBaseCommand<typeof args> {
     const nowPlaying =
       this.ctx.getMutable<LastFMArgumentsMutableContext>().nowplaying;
 
-    if (
-      artist.toLowerCase() === "f(x)" &&
-      album.toLowerCase() === "blue tape"
-    ) {
-      this.blueTape();
-      return;
-    }
-
     if (nowPlaying?.artist === artist && nowPlaying?.album === album) {
       await this.sendFromNowPlaying(nowPlaying);
     } else {
@@ -100,7 +92,7 @@ export default class Cover extends LastFMBaseCommand<typeof args> {
     await this.reply(
       `Cover for ${bold(album)} by ${bold(artist)}${
         albumCover.source === "moderation"
-          ? "\n*This image has been set by Gowon moderators*"
+          ? "\n*This image has been set by Melo moderators*"
           : albumCover.source === "custom"
           ? "\n*This image has been custom set by the user*"
           : ""
@@ -119,12 +111,4 @@ export default class Cover extends LastFMBaseCommand<typeof args> {
     );
   }
 
-  private async blueTape() {
-    await this.reply(
-      `Cover for ${bold("Blue Tape")} by ${bold(
-        "f(x)"
-      )}. *(Thanks to jopping and ember for the image)*`,
-      { files: ["http://gowon.bot/images/blueTape.png"] }
-    );
-  }
 }

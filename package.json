@@ -1,9 +1,10 @@
 {
-  "name": "gowon",
+  "name": "melo",
   "version": "1.0.1",
   "main": "dist/src/index.js",
-  "author": "John Ivison <john@ivison.org>",
+  "author": "ellipticbean",
   "license": "AGPL-3.0-or-later",
+  "description": "A Last.fm Discord bot based on Gowon",
   "scripts": {
     "start": "yarn build && node dist/src/index.js",
     "build": "tsc --project ./",
@@ -67,7 +68,6 @@
     "@types/glob": "^7.1.2",
     "@types/jest": "^27.4.1",
     "@types/js-md5": "^0.4.2",
-    "@types/mathjs": "^6.0.5",
     "@types/node": "^14.0.19",
     "@types/node-fetch": "^2.5.7",
     "@types/redis": "^2.8.25",

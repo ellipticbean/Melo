@@ -1,58 +1,41 @@
-<img src="assets/Gowon Banner.png" alt="Gowon" width="500"/>
+# Melo
 
-_어떤 꿈조차도 전부 이뤄질 듯한 느낌_
+Melo is a Last.fm Discord bot and a community-maintained successor based on [Gowon](https://github.com/gowon-bot/gowon). This repository preserves the upstream command framework and architecture while adapting the bot for independent operation and, in a later phase, replacing Fishy with a frog-pond nature-collecting game.
 
-Gowon is a Last.FM discord bot in active development.
+**Status:** migration in progress. Do not use this branch as a production bot yet.
 
-Check out the indexing server over at [gowon-bot/lilac](https://github.com/gowon-bot/lilac)
+## Features
 
-Check out the website over at [gowon-bot/gowon.ca](https://github.com/gowon-bot/gowon.ca)
+The upstream codebase includes a broad Last.fm command system, account linking, now-playing displays, charts, friends, crowns, Spotify integration, cards, help and administration commands, plus the original collection-game framework. Use `!help all` in Discord to browse available commands once configured.
 
-Check out the api gateway over at [gowon-bot/doughnut](https://github.com/gowon-bot/doughnut)
+## Architecture
 
-Check out the image generation server over at [gowon-bot/pantomime](https://github.com/gowon-bot/pantomime)
+The main bot uses TypeScript, discord.js 13, TypeORM, PostgreSQL and Redis. The original architecture also depends on companion services for indexing and cached Last.fm data.
 
-## Running yourself
+- [Lilac](https://github.com/gowon-bot/lilac) — indexing and GraphQL API
+- [Mirrorball](https://github.com/gowon-bot/mirrorball) — indexing service
+- [Doughnut](https://github.com/gowon-bot/doughnut) — API gateway/proxy
+- [Pantomime](https://github.com/gowon-bot/pantomime) — chart/image integration
+- [Supernova](https://github.com/gowon-bot/supernova) — supporting service
 
-Gowon now uses Docker and Docker Compose to run. She still accesses the database on the host machine however, so ensure you have Postgres installed, and a database called `gowon` exists (`createdb gowon`).
+The original `docker-compose.yml` starts the bot and Redis only. PostgreSQL and the required companion services need their own configuration and deployment. See [the companion-service map](docs/COMPANION_SERVICES.md).
 
-Copy `config.example.json` to `config.json`, and fill in all the fields. Then, do the same with `ormconfig.example.json`.
+## Development setup
 
-If you want to run a development version of the bot, you can create a `docker-compose.yml.override` to specify exposed ports and a development Dockerfile (where you could setup auto-reload with nodemon).
+Use Node.js 18 for the initial compatibility checks and Yarn Classic.
 
-To start docker-compose, run `docker-compose up`. Note you will have to download and build the Mirrorball docker image. (Available at [gowon-bot/lilac](https://github.com/gowon-bot/lilac))
+1. Install dependencies: `yarn install --frozen-lockfile`
+2. Copy `config.example.json` to `config.json` and fill in your own credentials.
+3. Copy `ormconfig.ts.example` to `ormconfig.ts` and configure a **dedicated Melo PostgreSQL database**.
+4. Copy `src/lib/specialUsers.example.json` to `src/lib/specialUsers.json` and set your own developer and bot IDs.
+5. Start PostgreSQL, Redis, Mirrorball and Lilac with their required configuration.
+6. Run database migrations with `yarn migrate` after verifying the database connection.
+7. Build with `yarn build`; start locally with `yarn start`.
 
-## Commands list
+Never commit `config.json`, `ormconfig.ts`, `specialUsers.json`, bot tokens, API keys, OAuth secrets, or database passwords. The example files are safe templates, not working credentials. Do not connect Melo to the original operator's live database.
 
-_You can find the source code for all the commands at [/src/commands](/src/commands)_
+## Upstream source and attribution
 
-There are now too many commands to list in the README, see `!help all` or visit https://gowon.bot/commands for a list of all commands.
+Melo's initial source baseline is pinned to [Gowon commit `256e728ab446dbfe942915acb94e494a4b6d37b0`](https://github.com/gowon-bot/gowon/commit/256e728ab446dbfe942915acb94e494a4b6d37b0). The upstream project and its contributors deserve credit for the code, assets, architecture and original ideas retained here.
 
-## Special Thanks
-
-- All my alpha testers, for breaking everything:
-
-  - Luca
-  - Ethan
-  - Enya ([Go checkout REM](https://github.com/yayuyokitano/rem-next))
-  - DunsterJR
-  - Manu
-  - Ten
-  - Dana
-  - Itsuko
-  - Catchy
-
-- DunsterJR for making the (old) profile picture, and for the friends plays idea
-- mypetrobot for building the `Who Knows?` bot, the backbone and inspiration for this bot
-- Frikandel (.fmbot developer) and Ish (Chuu developer) for being great bot developers to share a space with!
-- Egg and Mags for contributing the Yoink! emojis
-- Last.fm, for existing
-
-## Any questions?
-
-Somethings broken? Just curious how something works?
-
-Feel free to shoot me a Discord dm at `@abbyfour`
-or join the support server! https://discord.gg/9Vr7Df7TZf
-
-Become a patreon at [patreon.com/gowon\_](https://www.patreon.com/gowon_)
+This repository retains the upstream **AGPL-3.0-or-later** license. See [LICENSE](LICENSE) and comply with its source-availability and notice requirements when distributing or operating modified versions.

@@ -61,7 +61,7 @@ export default class SearchCommands extends Command<typeof args> {
           "command"
         )}, found ${displayNumber(foundCommands.length, "result")}` +
           (foundCommands.length > 12
-            ? "\nTry narrowing down your search to see more results, or go to https://gowon.bot/commands"
+            ? "\nTry narrowing down your search, or run the help command to browse all commands."
             : "")
       );
 

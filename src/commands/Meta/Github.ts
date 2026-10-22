@@ -6,7 +6,7 @@ export default class Github extends Command {
 
   subcategory = "about";
   aliases = ["gh", "source"];
-  description = "Displays the github link for the bot";
+  description = "Displays the GitHub link for the bot";
 
   async run() {
     const author = await this.gowonClient.client.users.fetch(
@@ -14,27 +14,23 @@ export default class Github extends Command {
     );
 
     const embed = this.minimalEmbed()
-      .setTitle("Gowon's source code </>")
+      .setTitle("Melo's source code </>")
       .setDescription(
-        `You can find the bot repo at ${displayLink(
-          "gowon-bot/gowon",
-          "https://github.com/gowon-bot/gowon"
-        )}, the indexing repo at ${displayLink(
+        `You can find Melo's bot repository at ${displayLink(
+          "ellipticbean/Melo",
+          "https://github.com/ellipticbean/Melo"
+        )}. Melo retains parts of Gowon's companion architecture, including ${displayLink(
           "gowon-bot/lilac",
           "https://github.com/gowon-bot/lilac"
-        )}, and the website repo at ${displayLink(
-          "jivison/gowon.ca",
-          "https://github.com/gowon-bot/gowon.ca"
-        )}
-      
-The bot is written in Typescript with Discord.js, Lilac is written in Elixir serving a GraphQL api, and Gowon.bot is built with Typescript and React.`
+        )} and ${displayLink(
+          "gowon-bot/mirrorball",
+          "https://github.com/gowon-bot/mirrorball"
+        )}.
+
+Melo is based on Gowon and retains attribution and the AGPL-3.0-or-later license.`
       )
-      .setFooter(`Made with <3 by ${displayUserTag(author)}`)
-      .setFooterIcon(
-        (
-          await this.gowonClient.client.users.fetch("267794154459889664")
-        ).avatarURL({ dynamic: true }) ?? undefined
-      );
+      .setFooter(`Maintained by ${displayUserTag(author)}`)
+      .setFooterIcon(author.avatarURL({ dynamic: true }) ?? undefined);
 
     await this.reply(embed);
   }

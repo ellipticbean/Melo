@@ -1,5 +1,4 @@
 import { Command } from "../../lib/command/Command";
-import { Emoji } from "../../lib/emoji/Emoji";
 import { HelpEmbed } from "../../lib/ui/embeds/HelpEmbed";
 
 export default class QuickHelp extends Command {
@@ -14,16 +13,16 @@ export default class QuickHelp extends Command {
       .setHeader(this.ctx.isDM() ? "Quick Help in DMs" : "Quick Help")
       .setDescription(
         `
-Welcome to Gowon! ${Emoji.gowonPeek}
-      
-Use \`${this.prefix}login\` to login
-To see a list of all commands see \`${this.prefix}help all\`, or visit https://gowon.bot/commands
-To change prefix, run \`@Gowon prefix <prefix>\` (the current prefix is \`${this.prefix}\`)
+Welcome to Melo! 🎶
 
-Curious how Gowon uses your data? https://gowon.bot/privacy
-More questions? Come visit the support server: https://discord.gg/9Vr7Df7TZf` +
+Use \`${this.prefix}login\` to link your Last.fm account.
+To browse all commands, run \`${this.prefix}help all\`.
+To change the prefix, run \`@Melo prefix <prefix>\` (the current prefix is \`${this.prefix}\`).
+
+Source code and project updates: https://github.com/ellipticbean/Melo
+Report a problem: https://github.com/ellipticbean/Melo/issues` +
           (this.ctx.isDM()
-            ? `\n\nOnly certain commands can be run in DMs. Simply use the default prefix \`${this.prefix}\`, and run commands like you would normally`
+            ? `\n\nOnly certain commands can be run in DMs. Use the default prefix \`${this.prefix}\` and run commands as you would normally.`
             : "")
       );
 
