@@ -1,5 +1,5 @@
 import { getOrdinal } from "../../../helpers";
-import { isGowon } from "../../../helpers/bots";
+import { isMelo } from "../../../helpers/bots";
 import { bold, italic } from "../../../helpers/discord";
 import { toInt } from "../../../helpers/lastfm";
 import { Emoji } from "../../../lib/emoji/Emoji";
@@ -89,8 +89,8 @@ export class Overview extends ProfileChildCommand {
   private getSpecialUserEmoji(): string {
     return this.gowonClient.isDeveloper(this.discordID)
       ? `${Emoji.typescript} _Author_\n`
-      : isGowon(this.discordID)
-      ? `${Emoji.gowonswag2} _Gowon_\n`
+      : isMelo(this.discordID)
+      ? `🎶 _Melo_\n`
       : this.gowonClient.isDeveloperOf("chuu", this.discordID)
       ? `${Emoji.ish} _Ish_\n`
       : this.gowonClient.isDeveloperOf("fmbot", this.discordID)

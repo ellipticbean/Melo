@@ -5,6 +5,8 @@ export type BotName =
   | "rem"
   | "gowon"
   | "gowon development"
+  | "melo"
+  | "melo development"
   | "chuu"
   | "fmbot"
   | "fmbot develop"
@@ -13,6 +15,10 @@ export type BotName =
 
 export function isGowon(userID?: string) {
   return isBot(userID, "gowon") || isBot(userID, "gowon development");
+}
+
+export function isMelo(userID?: string) {
+  return isBot(userID, "melo") || isBot(userID, "melo development");
 }
 
 export function isBot(

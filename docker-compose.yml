@@ -1,6 +1,6 @@
 # NOTE: Ports should be specified in docker-compose.override.yml
 services:
-  gowon:
+  melo:
     build: .
     extra_hosts:
       - "host.docker.internal:host-gateway"

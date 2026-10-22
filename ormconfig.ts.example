@@ -30,7 +30,7 @@ export const gowonDatabase = new DataSource({
   port: 5432,
   username: "your username here",
   password: "your password here",
-  database: "gowon",
+  database: "melo",
   logging: false,
   synchronize: false,
   name: "default",

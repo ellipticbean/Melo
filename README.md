@@ -25,9 +25,9 @@ The original `docker-compose.yml` starts the bot and Redis only. PostgreSQL and 
 Use Node.js 18 for the initial compatibility checks and Yarn Classic.
 
 1. Install dependencies: `yarn install --frozen-lockfile`
-2. Copy `config.example.json` to `config.json` and fill in your own credentials.
+2. Copy `config.example.json` to `config.json`, fill in your own credentials, and set `lastFMStatusUsername` to a valid Last.fm username for the status command's latency check.
 3. Copy `ormconfig.ts.example` to `ormconfig.ts` and configure a **dedicated Melo PostgreSQL database**.
-4. Copy `src/lib/specialUsers.example.json` to `src/lib/specialUsers.json` and set your own developer and bot IDs.
+4. Copy `src/lib/specialUsers.example.json` to `src/lib/specialUsers.json` and set your own developer and bot IDs; name your bot entry `melo` (and `melo development` for a separate test bot).
 5. Start PostgreSQL, Redis, Mirrorball and Lilac with their required configuration.
 6. Run database migrations with `yarn migrate` after verifying the database connection.
 7. Build with `yarn build`; start locally with `yarn start`.

@@ -1,5 +1,5 @@
 import { CommandInteraction, Message, User } from "discord.js";
-import { isGowon } from "../../../../../helpers/bots";
+import { isMelo } from "../../../../../helpers/bots";
 import { GowonContext } from "../../../Context";
 import {
   BaseArgument,
@@ -30,7 +30,7 @@ export class DiscordUserArgument<
       mentions = mentions.slice(1);
     }
 
-    if (isGowon(message.mentions.repliedUser?.id ?? "")) {
+    if (isMelo(message.mentions.repliedUser?.id ?? "")) {
       mentions = mentions.filter(
         (m) => m.id !== message.mentions.repliedUser!.id
       );
