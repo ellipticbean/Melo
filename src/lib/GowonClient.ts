@@ -9,6 +9,15 @@ import { isUnicodeEmoji } from "./context/arguments/parsers/EmojiParser";
 import { SettingsService } from "./settings/SettingsService";
 import specialUsers from "./specialUsers.json";
 
+type SpecialUser = { id: string; name: string };
+type SpecialUsers = {
+  developers: SpecialUser[];
+  bots: SpecialUser[];
+  alphaTesters: SpecialUser[];
+  otherBotDevelopers: Record<string, SpecialUser[]>;
+  help?: string[];
+};
+
 export class GowonClient {
   private get settingsService() {
     return ServiceRegistry.get(SettingsService);
@@ -16,8 +25,10 @@ export class GowonClient {
 
   constructor(public client: Client, public environment: string) {}
 
-  get specialUsers() {
-    return specialUsers;
+  get specialUsers(): SpecialUsers {
+    // Empty arrays in the example JSON otherwise infer as never[] and break
+    // builds when users have not populated their optional tester lists yet.
+    return specialUsers as SpecialUsers;
   }
 
   get isInIssueMode(): boolean {
