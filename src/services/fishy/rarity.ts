@@ -25,7 +25,7 @@ export class FishyRarityData {
 
 export const FishyRarities = {
   // Grey
-  Trash: new FishyRarityData("Trash", 10, "#929394", FishyRarityEmojis.trash),
+  Trash: new FishyRarityData("Everyday finds", 10, "#929394", FishyRarityEmojis.trash, "Trash"),
   // Green
   Common: new FishyRarityData(
     "Common",

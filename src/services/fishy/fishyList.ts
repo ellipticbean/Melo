@@ -1,13 +1,25 @@
 import { extractEmojiID } from "../../lib/emoji/Emoji";
 import { Fishy } from "./Fishy";
-import { commonFishies } from "./fish/common";
-import { legendaryFishies } from "./fish/legendary";
-import { rareFishies } from "./fish/rare";
-import { specialFishies } from "./fish/special";
-import { superRareFishies } from "./fish/superRare";
-import { trash } from "./fish/trash";
-import { uncommonFishy } from "./fish/uncommon";
+import {
+  commonFishies,
+  legendaryFishies,
+  rareFishies,
+  specialFishies,
+  superRareFishies,
+  trash,
+  uncommonFishy,
+} from "./nature";
 import { FishyRarities, FishyRarityData } from "./rarity";
+
+export {
+  commonFishies,
+  legendaryFishies,
+  rareFishies,
+  specialFishies,
+  superRareFishies,
+  trash,
+  uncommonFishy,
+};
 
 export const fishyList = [
   ...trash,
@@ -23,44 +35,38 @@ export function getFishyList(
   rarity?: FishyRarityData,
   fishyProfileLevel?: number
 ): Fishy[] {
-  let fishies: Fishy[];
+  let discoveries: Fishy[];
 
   switch (rarity?.name) {
     case undefined:
-      fishies = fishyList;
+      discoveries = fishyList;
       break;
-
     case FishyRarities.Trash.name:
-      fishies = trash;
+      discoveries = trash;
       break;
-
     case FishyRarities.Common.name:
-      fishies = commonFishies;
+      discoveries = commonFishies;
       break;
-
     case FishyRarities.Uncommon.name:
-      fishies = uncommonFishy;
+      discoveries = uncommonFishy;
       break;
-
     case FishyRarities.Rare.name:
-      fishies = rareFishies;
+      discoveries = rareFishies;
       break;
-
     case FishyRarities.SuperRare.name:
-      fishies = superRareFishies;
+      discoveries = superRareFishies;
       break;
-
     case FishyRarities.Legendary.name:
-      fishies = legendaryFishies;
+      discoveries = legendaryFishies;
       break;
-
     default:
-      fishies = specialFishies.filter((f) => f.rarity.name === rarity!.name);
+      discoveries = specialFishies.filter((f) => f.rarity.name === rarity!.name);
   }
 
   if (fishyProfileLevel !== undefined) {
-    return fishies.filter((f) => fishyProfileLevel >= f.requiredFishyLevel);
-  } else return fishies;
+    return discoveries.filter((f) => fishyProfileLevel >= f.requiredFishyLevel);
+  }
+  return discoveries;
 }
 
 export function findFishy(

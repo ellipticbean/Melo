@@ -12,8 +12,8 @@ import {
   FishyRarityBreakdown,
   FishyResult,
 } from "./FishyService.types";
-import { specialFishies } from "./fish/special";
-import { trash } from "./fish/trash";
+import { specialFishies, trash } from "./nature";
+
 import { findFishy, getFishyList } from "./fishyList";
 import { FishyRarities, FishyRarityData } from "./rarity";
 
