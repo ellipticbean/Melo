@@ -18,7 +18,7 @@ The main bot uses TypeScript, discord.js 13, TypeORM, PostgreSQL and Redis. The 
 - [Pantomime](https://github.com/gowon-bot/pantomime) — chart/image integration
 - [Supernova](https://github.com/gowon-bot/supernova) — supporting service
 
-The current Compose stack starts Melo, PostgreSQL, and Redis. Mirrorball, Lilac, and the other companion integrations still need their own configuration and deployment. See [the companion-service map](docs/COMPANION_SERVICES.md). See [the companion-service map](docs/COMPANION_SERVICES.md).
+The current Compose stack starts Melo, PostgreSQL, and Redis. Mirrorball, Lilac, and the other companion integrations still need their own configuration and deployment. See [the companion-service map](docs/COMPANION_SERVICES.md). For a prepared Ubuntu VPS path, see the [VPS deployment runbook](deploy/vps/README.md) and [cloud-init bootstrap](deploy/vps/cloud-init.yaml).
 
 ## Development setup
 
@@ -46,7 +46,7 @@ The Docker image builds from safe example files and does not bake your local con
 6. Run migrations: `docker compose run --rm melo yarn migrate`.
 7. Start Melo: `docker compose up --build -d melo`; follow logs with `docker compose logs -f melo`.
 
-The main bot probes Mirrorball and Lilac at startup but logs connection failures rather than aborting startup. Indexing and other dependent features will not work until those services are reachable. The Compose file provides PostgreSQL and Redis, but does not deploy those companion projects automatically. Before enabling Spotify OAuth or public webhooks, set `spotifyRedirectHost` and API/website URLs to your real public HTTPS address and put port 3000 behind a TLS reverse proxy.
+The main bot probes Mirrorball and Lilac at startup but logs connection failures rather than aborting startup. Indexing and other dependent features will not work until those services are reachable. The Compose file provides PostgreSQL and Redis, but does not deploy those companion projects automatically. The bot's port 3000 is bound to localhost by default; before enabling Spotify OAuth or public webhooks, set `spotifyRedirectHost` and API/website URLs to your real public HTTPS address and put port 3000 behind a TLS reverse proxy.
 
 ## Upstream source and attribution
 
