@@ -48,6 +48,11 @@ jobs:
           cp "$RUNNER_TEMP/gowon-import.yml" .github/workflows/gowon-import.yml
           cp "$RUNNER_TEMP/MIGRATION_STATUS.md" MIGRATION_STATUS.md
 
+          # Do not import upstream deployment workflows: GitHub restricts
+          # workflow-file writes for the repository token, and those workflows
+          # may assume Gowon-specific secrets or deployment infrastructure.
+          find .github/workflows -type f ! -name 'gowon-import.yml' -delete
+
           git add --all
           if git diff --cached --quiet; then
             echo "Pinned upstream source already matches this branch."
