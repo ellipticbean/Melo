@@ -75,3 +75,9 @@ jobs:
       - name: Build Docker image
         if: matrix.node-version == 22
         run: docker build -t melo:ci .
+
+      - name: Validate Docker Compose configuration
+        if: matrix.node-version == 22
+        run: |
+          printf 'POSTGRES_PASSWORD=test-password\n' > .env
+          docker compose config --quiet
