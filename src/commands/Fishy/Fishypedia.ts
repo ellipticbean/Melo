@@ -6,7 +6,6 @@ import { StringArgument } from "../../lib/context/arguments/argumentTypes/String
 import { EmojisArgument } from "../../lib/context/arguments/argumentTypes/discord/EmojisArgument";
 import { standardMentions } from "../../lib/context/arguments/mentionTypes/mentions";
 import { ArgumentsMap } from "../../lib/context/arguments/types";
-import { EmojiRaw } from "../../lib/emoji/Emoji";
 import { displayNumber } from "../../lib/ui/displays";
 import { EmbedView } from "../../lib/ui/views/EmbedView";
 import { ScrollingListView } from "../../lib/ui/views/ScrollingListView";
@@ -22,37 +21,35 @@ import {
 import { FishyChildCommand } from "./FishyChildCommand";
 
 const args = {
-  fishy: new StringArgument({
+  discovery: new StringArgument({
     index: { start: 0 },
-    description: "The fishy name to learn about",
+    description: "The nature discovery name to look up",
   }),
-  fishyEmoji: new EmojisArgument({
+  discoveryEmoji: new EmojisArgument({
     index: { start: 0 },
-    description: "The fishy emoji to learn about",
+    description: "The nature discovery emoji to look up",
   }),
-  fishyTrait: new StringArgument({
+  discoveryTrait: new StringArgument({
     index: { start: 0 },
-    description: "The fishy trait to list fish",
+    description: "A trait to filter the nature guide",
     preprocessor: (s) => s.toLowerCase(),
   }),
   ...standardMentions,
 } satisfies ArgumentsMap;
 
-export class Fishypedia extends FishyChildCommand<typeof args> {
+export class FieldGuide extends FishyChildCommand<typeof args> {
   idSeed = "le sserafim eunchae";
-  aliases = ["info", "wiki"];
+  aliases = ["info", "wiki", "guide", "fg"];
 
-  description = "See information about a fish";
-
-  usage = ["fishyname", ":fishyemoji:"];
+  description = "Look up a creature, plant, or other pond discovery";
+  usage = ["name", ":emoji:"];
 
   arguments = args;
 
   async run() {
-    const fishyTrait = convertFishyTrait(this.parsedArguments.fishyTrait);
-
-    if (fishyTrait) {
-      await this.listFishy(fishyTrait);
+    const trait = convertFishyTrait(this.parsedArguments.discoveryTrait);
+    if (trait) {
+      await this.listDiscoveries(trait);
       return;
     }
 
@@ -61,114 +58,98 @@ export class Fishypedia extends FishyChildCommand<typeof args> {
       fetchDiscordUser: true,
     });
 
-    const perspective = this.usersService.discordPerspective(
-      this.author,
-      discordUser
-    );
+    const perspective = this.usersService.discordPerspective(this.author, discordUser);
+    const name = this.parsedArguments.discovery;
+    const emoji = this.parsedArguments.discoveryEmoji;
 
-    const fishyName = this.parsedArguments.fishy;
-    const fishyEmoji = this.parsedArguments.fishyEmoji;
-
-    const fishy = fishyEmoji?.length
-      ? findFishy({ byEmoji: fishyEmoji[0].raw })
-      : fishyName
-      ? findFishy(fishyName)
+    const discovery = emoji?.length
+      ? findFishy({ byEmoji: emoji[0].raw })
+      : name
+      ? findFishy(name)
       : fishyProfile
       ? (await this.fishyService.getLastCatch(fishyProfile))?.fishy
       : undefined;
 
-    if (!fishy) throw new FishyNotFoundError(fishyEmoji?.[0] || fishyName);
+    if (!discovery) throw new FishyNotFoundError(emoji?.[0] || name);
 
-    const fishyCount = fishyProfile
-      ? await this.fishyService.countFishy(fishyProfile, fishy)
+    const count = fishyProfile
+      ? await this.fishyService.countFishy(fishyProfile, discovery)
       : 0;
 
     const mainTab: TabbedViewTab = {
       name: "main",
-      rawEmoji: EmojiRaw.fishypediaMainTab,
-      embed: this.getMainTabEmbed(fishy, fishyCount, perspective),
+      rawEmoji: "📖",
+      embed: this.getMainTabEmbed(discovery, count, perspective),
     };
-
     const traitsTab: TabbedViewTab = {
       name: "traits",
-      rawEmoji: EmojiRaw.fishypediaTraitsTab,
-      embed: this.getTraitsTabEmbed(fishy),
+      rawEmoji: "🔎",
+      embed: this.getTraitsTabEmbed(discovery),
     };
 
     const tabbedEmbed = new TabbedView(this.ctx, {
-      tabs: fishy.traits.length ? [mainTab, traitsTab] : [mainTab],
+      tabs: discovery.traits.length ? [mainTab, traitsTab] : [mainTab],
     });
-
     await this.reply(tabbedEmbed);
   }
 
   private getMainTabEmbed(
-    fishy: Fishy,
-    fishyCount: number,
+    discovery: Fishy,
+    count: number,
     perspective: Perspective
   ): EmbedView {
-    const embed = this.getBaseTabEmbed(fishy).setDescription(
+    const embed = this.getBaseTabEmbed(discovery).setDescription(
       `
-${fishy.emoji} ${bold(italic(fishy.binomialName), false)}
-${fishy.rarity.emoji.forLevel(fishy.requiredFishyLevel)} Level ${
-        fishy.requiredFishyLevel
-      } ${fishy.rarity.name} fishy
+${discovery.emoji} ${bold(italic(discovery.binomialName), false)}
+${discovery.rarity.emoji.forLevel(discovery.requiredFishyLevel)} Level ${discovery.requiredFishyLevel} ${discovery.rarity.name} discovery
 
-${italic(quote(fishy.description))}
+${italic(quote(discovery.description))}
 
 ${
-  fishyCount > 0
-    ? `${perspective.upper.plusToHave} caught this fish ${bold(
-        displayNumber(fishyCount, "time")
-      )}.`
-    : `${perspective.upper.plusToHave} never caught this fish.`
+  count > 0
+    ? `${perspective.upper.plusToHave} found this discovery ${bold(displayNumber(count, "time"))}.`
+    : `${perspective.upper.plusToHave} never found this discovery.`
 }`
     );
 
-    if (!fishy.rarity.isTrash()) {
+    if (!discovery.rarity.isTrash()) {
       embed.addFields({
-        name: "Weight",
-        value: `${fishy.minWeight}-${fishy.maxWeight}kg`,
+        name: "Approximate size",
+        value: `${discovery.minWeight}-${discovery.maxWeight} cm`,
       });
     }
-
     return embed;
   }
 
-  private getTraitsTabEmbed(fishy: Fishy): EmbedView {
-    return this.getBaseTabEmbed(fishy).setDescription(
+  private getTraitsTabEmbed(discovery: Fishy): EmbedView {
+    return this.getBaseTabEmbed(discovery).setDescription(
       `**Traits**:
- ${fishy.traits.map((t) => `${bullet} ${displayFishyTrait(t)}`).join("\n")}`
+ ${discovery.traits.map((t) => `${bullet} ${displayFishyTrait(t).replaceAll("fishy", "discovery")}`).join("\n")}`
     );
   }
 
-  private getBaseTabEmbed(fishy: Fishy): EmbedView {
+  private getBaseTabEmbed(discovery: Fishy): EmbedView {
     return this.minimalEmbed()
-      .setHeader("Fishypedia")
-      .setColour(fishy.rarity.colour)
-      .setTitle(fishy.name)
-      .setURL(fishy.url);
+      .setHeader("Field Guide")
+      .setColour(discovery.rarity.colour)
+      .setTitle(discovery.name)
+      .setURL(discovery.url);
   }
 
-  private async listFishy(trait: FishyTrait) {
-    const fishy = fishyList.filter(
+  private async listDiscoveries(trait: FishyTrait) {
+    const discoveries = fishyList.filter(
       (f) => !f.rarity.special && matchesFishyTrait(f, trait)
     );
-
     const embed = this.minimalEmbed().setTitle(
-      `Fishypedia search results for ${displayFishyTrait(trait, true)}`
+      `Field Guide results for ${displayFishyTrait(trait, true).replaceAll("fishy", "discovery")}`
     );
-
-    const simpleScrollingEmbed = new ScrollingListView(this.ctx, embed, {
-      items: fishy.map(
+    const list = new ScrollingListView(this.ctx, embed, {
+      items: discoveries.map(
         (f) =>
-          `${f.rarity.emoji.forLevel(f.requiredFishyLevel)} ${
-            f.emoji
-          } ${emDash} ${bold(f.name)} (${f.binomialName})`
+          `${f.rarity.emoji.forLevel(f.requiredFishyLevel)} ${f.emoji} ${emDash} ${bold(f.name)} (${f.binomialName})`
       ),
       pageSize: 15,
     });
-
-    await this.reply(simpleScrollingEmbed);
+    await this.reply(list);
   }
 }

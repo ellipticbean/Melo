@@ -43,7 +43,7 @@ export class FishyService extends BaseService {
   ): Promise<FishyCatch> {
     this.log(
       ctx,
-      `Saving fishy ${fishyResult.fishy.name} (${fishyResult.weight}kg) for user with id ${profile.user.id}`
+      `Saving pond discovery ${fishyResult.fishy.name} (${fishyResult.weight}cm) for user with id ${profile.user.id}`
     );
 
     const fishyCatch = FishyCatch.create({

@@ -6,60 +6,51 @@ import { EmojiMention } from "../../lib/context/arguments/parsers/EmojiParser";
 import { ClientError } from "../errors";
 
 export class FishyNotFoundError extends ClientError {
-  name = "FishyNotFoundError";
+  name = "NatureDiscoveryNotFoundError";
 
   constructor(name?: string | EmojiMention) {
     super(
-      `Couldn't find a fishy with ${
-        typeof name === "string"
-          ? `the name ${code(name)}`
-          : `the emoji ${name?.raw}`
+      `Couldn't find a nature discovery with ${
+        typeof name === "string" ? `the name ${code(name)}` : `the emoji ${name?.raw}`
       }!`
     );
   }
 }
 
-const misoCooldownQuotes: Array<(time: string) => string> = [
-  (t) => `Bro chill, you can't fish yet! Please wait ${t}`,
-  (t) => `You can't fish yet, fool! Please wait ${t}`,
-  (t) => `You're fishing too fast! Please wait ${t}`,
-  (t) => `You're still on cooldown buddy. Please wait ${t}`,
+const pondCooldownQuotes: Array<(time: string) => string> = [
+  (t) => `The frogs need a breather. Come back in ${t}.`,
+  (t) => `The pond is taking a quiet moment. Try again in ${t}.`,
+  (t) => `The reeds are rustling, but it's not time to explore yet. Wait ${t}.`,
+  (t) => `The little pond is resting. Check back in ${t}.`,
 ];
 
 const cooldownMessages: Array<(time: string) => string> = [
-  ...misoCooldownQuotes.map(
-    (m) => (t: string) => `${quote(m(t))}\n${emDash} Miso bot`
-  ),
-  (t) => `You can't fish for another ${t}.`,
-  (t) => `There's no fish around, try waiting another ${t}.`,
-  (t) => `Nothing bit, try waiting another ${t}.`,
-  (t) => `You can't fish for another ${t}.`,
+  ...pondCooldownQuotes,
+  (t) => `You can explore the pond again in ${t}.`,
+  (t) => `Nothing new is stirring; try again in ${t}.`,
+  (t) => `The pond is quiet for now. Come back in ${t}.`,
 ];
 
 export class CantFishYetError extends ClientError {
-  name = "CantFishYetError";
+  name = "CantExploreYetError";
 
   constructor(fishyProfile: FishyProfile) {
-    const time = bold(fishyProfile.getCooldownTime());
-
-    super(Chance().pickone(cooldownMessages)(time));
+    super(Chance().pickone(cooldownMessages)(bold(fishyProfile.getCooldownTime())));
   }
 }
 
 export class SenderUserHasNoFishyProfileError extends ClientError {
-  name = "SenderUserHasNoFishyProfileError";
+  name = "NoPondJournalError";
 
   constructor(prefix: string) {
-    super(
-      `You don't have a fishy profile yet! You can run \`${prefix}fishy\` to get started!`
-    );
+    super(`You don't have a pond journal yet! Run \`${prefix}pond\` to start exploring.`);
   }
 }
 
 export class MentionedUserHasNoFishyProfileError extends ClientError {
-  name = "MentionedUserHasNoFishyProfileError";
+  name = "MentionedUserHasNoPondJournalError";
 
   constructor() {
-    super(`That user doesn't have a fishy profile yet!`);
+    super("That user doesn't have a pond journal yet.");
   }
 }

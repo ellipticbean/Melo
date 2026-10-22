@@ -64,7 +64,7 @@ export class FishyQuest extends BaseEntity {
 
     switch (this.type) {
       case FishyQuestType.Count:
-        return questStart + "fishy.";
+        return questStart + "pond discoveries.";
       case FishyQuestType.Rarity:
         return this.getQuestNameForRarity(questStart);
       case FishyQuestType.Weight:
@@ -72,7 +72,7 @@ export class FishyQuest extends BaseEntity {
       case FishyQuestType.Trait:
         return this.getQuestNameForTrait(questStart);
       case FishyQuestType.Milestone:
-        return `Catch ${bold(displayNumber(this.count))} fishy in total`;
+        return `Discover ${bold(displayNumber(this.count))} pond finds in total`;
     }
 
     return "";
@@ -86,7 +86,7 @@ export class FishyQuest extends BaseEntity {
       start +
       `${bold(
         rarity.isTrash()
-          ? `pieces of ${FishyRarityEmojis.trash.base}Trash`
+          ? `pieces of ${FishyRarityEmojis.trash.base}Everyday finds`
           : `${rarity.emoji.base}${rarity.name} fishy`
       )}`
     );
@@ -95,23 +95,23 @@ export class FishyQuest extends BaseEntity {
   private getQuestNameForWeight(start: string): string {
     return (
       start +
-      `fishy weighing at least **${displayNumber(this.numberConstraint)}kg**.`
+      `discoveries measuring at least **${displayNumber(this.numberConstraint)} cm**.`
     );
   }
 
   private getQuestNameForTrait(start: string): string {
     return (
       start +
-      displayFishyTrait(this.stringConstraint as FishyTraitNoDepth, true)
+      displayFishyTrait(this.stringConstraint as FishyTraitNoDepth, true).replaceAll("fishy", "discovery")
     );
   }
 
   private getQuestStart(): string {
     return (
       Chance().pickone([
-        `Catch ${bold(displayNumber(this.count))}`,
+        `Discover ${bold(displayNumber(this.count))}`,
         `Find ${bold(displayNumber(this.count))}`,
-        `Hook ${bold(displayNumber(this.count))}`,
+        `Spot ${bold(displayNumber(this.count))}`,
       ]) + " "
     );
   }
