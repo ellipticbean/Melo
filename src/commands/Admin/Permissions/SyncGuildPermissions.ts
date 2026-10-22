@@ -4,7 +4,7 @@ import { PermissionsChildCommand } from "./PermissionsChildCommand";
 export class SyncGuildPermissions extends PermissionsChildCommand {
   idSeed = "kep1er huening bahiyyih";
 
-  description = "Syncs your server roles with Gowon's slash commands";
+  description = "Syncs your server roles with Melo's slash commands";
   usage = "";
 
   slashCommand = true;

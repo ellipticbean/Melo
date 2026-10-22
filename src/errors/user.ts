@@ -66,7 +66,7 @@ export class MentionedUserNotIndexedError extends ClientError {
 
 export class MentionedSignInRequiredError extends ClientError {
   constructor(username: string) {
-    super(`This command requires that \`${username}\` be signed into Gowon!`);
+    super(`This command requires that \`${username}\` be signed into Melo!`);
   }
 }
 
@@ -81,7 +81,7 @@ export class SenderSignInRequiredError extends ClientError {
 
 export class MentionedUserRequiredError extends ClientError {
   constructor() {
-    super(`Please mention a user who is signed into Gowon!`);
+    super(`Please mention a user who is signed into Melo!`);
   }
 }
 

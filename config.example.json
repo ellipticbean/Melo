@@ -3,6 +3,7 @@
 
   "lastFMAPIKey": "Get this from https://last.fm/api",
   "lastFMSecret": "Get this from https://last.fm/api",
+  "lastFMStatusUsername": "",
 
   "lastFMBotUsername": "use this if you want the bot to scrobble tracks (you will need to configure who it will scrobble yourself. By default, it's alpha testers in specialUsers.json)",
   "lastFMBotPassword": "use this if you want the bot to scrobble tracks",

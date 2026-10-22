@@ -16,7 +16,7 @@ export class SetAdminRole extends PermissionsChildCommand<typeof args> {
   idSeed = "dreamnote lara";
 
   description =
-    "Any user with this role will be treated like an administrator when running Gowon commands";
+    "Any user with this role will be treated like an administrator when running Melo commands";
   extraDescription =
     ".\nNote that any user with the discord 'Administrator' permission automatically has access to all admin commands";
 
@@ -33,7 +33,7 @@ export class SetAdminRole extends PermissionsChildCommand<typeof args> {
   settingsService = ServiceRegistry.get(SettingsService);
 
   private readonly adminRoleHelp =
-    "Any user with the admin role can use Gowon's admin-only commands";
+    "Any user with the admin role can use Melo's admin-only commands";
 
   async run() {
     if (this.parsedArguments.adminRole) {

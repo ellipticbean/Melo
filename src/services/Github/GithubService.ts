@@ -11,8 +11,8 @@ import {
 export class GithubService extends BaseService {
   private baseURL = "https://api.github.com";
 
-  public readonly owner = "gowon-bot";
-  public readonly repo = "gowon";
+  public readonly owner = "ellipticbean";
+  public readonly repo = "Melo";
 
   get axios(): AxiosInstance {
     return Axios.create({

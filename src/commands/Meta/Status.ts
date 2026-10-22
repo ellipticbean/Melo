@@ -1,3 +1,4 @@
+import config from "../../../config.json";
 import { Stopwatch } from "../../helpers";
 import { bold, italic, subsubheader } from "../../helpers/discord";
 import { extraWideSpace } from "../../helpers/specialCharacters";
@@ -19,7 +20,7 @@ type Latencies = {
 export default class Status extends Command {
   idSeed = "newjeans danielle";
 
-  description = "See the status of Gowon's services";
+  description = "See the status of Melo's services";
   category = "meta";
   usage = "";
 
@@ -28,7 +29,7 @@ export default class Status extends Command {
 
   async run() {
     const embed = this.minimalEmbed()
-      .setTitle("Gowon status:")
+      .setTitle("Melo status:")
       .setDescription(this.displayLatencies({} as Latencies));
 
     const mirrorballLatency = await this.mirrorballLatency();
@@ -63,7 +64,7 @@ export default class Status extends Command {
         latencies.lastfm
       )}`,
       "",
-      bold("Gowon:"),
+      bold("Melo:"),
       `${extraWideSpace}${Emoji.mirrorballLogo} Mirrorball – ${displayLatency(
         latencies.mirrorball
       )}`,
@@ -120,10 +121,10 @@ export default class Status extends Command {
 
   private async lastFMLatency() {
     const stopwatch = new Stopwatch();
+    if (!config.lastFMStatusUsername) return stopwatch.zero();
+
     stopwatch.start();
-
-    await this.lastFMService.nowPlaying(this.ctx, "gowon_");
-
+    await this.lastFMService.nowPlaying(this.ctx, config.lastFMStatusUsername);
     stopwatch.stop();
     return stopwatch;
   }

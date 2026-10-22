@@ -33,7 +33,7 @@ export class AnalyticsCollector extends BaseService {
     }),
     guildCount: new Gauge({
       name: "guild_count",
-      help: "Number of guilds Gowon is in",
+      help: "Number of guilds Melo is in",
     }),
     userCount: new Gauge({
       name: "user_count",

@@ -17,7 +17,7 @@ const args = {
 export default class Issue extends Command<typeof args> {
   idSeed = "apink bomi";
 
-  description = "Create a github issue on the gowon repository";
+  description = "Create a GitHub issue on the Melo repository";
   subcategory = "developer";
   secretCommand = true;
   usage = ["title | body"];
@@ -61,7 +61,7 @@ export default class Issue extends Command<typeof args> {
     const metadata = `
 
 
-## Notes from Gowon:
+## Notes from Melo:
 
 ${
   this.payload.isMessage()
