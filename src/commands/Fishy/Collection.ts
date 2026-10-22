@@ -13,7 +13,7 @@ const args = {
 
 export class Collection extends FishyChildCommand<typeof args> {
   idSeed = "csr yuna";
-  aliases = ["col", "completion", "com", "journal"];
+  aliases = ["col", "completion", "com", "journal", "pondcollection", "pc"];
 
   description =
     "Browse your nature journal and see which discoveries you have yet to find.";

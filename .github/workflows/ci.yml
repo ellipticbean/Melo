@@ -1,4 +1,4 @@
-name: Gowon baseline CI
+name: Melo CI
 
 on:
   push:

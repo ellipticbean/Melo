@@ -3,6 +3,7 @@ import { FishyChildCommand } from "./FishyChildCommand";
 
 export class Help extends FishyChildCommand {
   idSeed = "csr duna";
+  aliases = ["pondhelp"];
 
   description = "View help about Frog Pond";
   usage = [""];

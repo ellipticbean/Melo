@@ -1,12 +1,12 @@
 # Melo
 
-Melo is a Last.fm Discord bot and a community-maintained successor based on [Gowon](https://github.com/gowon-bot/gowon). This repository preserves the upstream command framework and architecture while adapting the bot for independent operation and, in a later phase, replacing Fishy with a frog-pond nature-collecting game.
+Melo is a Last.fm Discord bot and a community-maintained successor based on [Gowon](https://github.com/gowon-bot/gowon). This repository preserves the upstream command framework and architecture while adapting the bot for independent operation and replacing Fishy with the Frog Pond nature-collecting game.
 
 **Status:** migration in progress. Do not use this branch as a production bot yet.
 
 ## Features
 
-The upstream codebase includes a broad Last.fm command system, account linking, now-playing displays, charts, friends, crowns, Spotify integration, cards, help and administration commands, plus the original collection-game framework. Use `!help all` in Discord to browse available commands once configured.
+The bot includes a broad Last.fm command system, account linking, now-playing displays, charts, friends, crowns, Spotify integration, cards, help and administration commands, plus the original collection-game framework. Use `!help all` in Discord to browse available commands once configured.
 
 ## Architecture
 
