@@ -48,4 +48,5 @@ jobs:
         run: yarn test --runInBand
 
       - name: Build Docker image
+        if: matrix.node-version == 22
         run: docker build -t melo:ci .
