@@ -22,9 +22,9 @@ The original `docker-compose.yml` starts the bot and Redis only. PostgreSQL and 
 
 ## Development setup
 
-Use Node.js 22 for local development and deployment; CI checks Node.js 18 and 22. Use Yarn Classic.
+Use Node.js 22 for local development and deployment; CI checks Node.js 18 and 22. Use Yarn Classic. The TypeORM example loads `.env` for local migration commands.
 
-1. Install dependencies: `yarn install --frozen-lockfile`
+1. Copy `.env.example` to `.env` and set your PostgreSQL password, then install dependencies: `yarn install --frozen-lockfile`
 2. Copy `config.example.json` to `config.json`, fill in your own credentials, and set `lastFMStatusUsername` to a valid Last.fm username for the status command's latency check.
 3. Copy `ormconfig.ts.example` to `ormconfig.ts` and configure a **dedicated Melo PostgreSQL database**.
 4. Copy `src/lib/specialUsers.example.json` to `src/lib/specialUsers.json` and set your own developer and bot IDs; name your bot entry `melo` (and `melo development` for a separate test bot).

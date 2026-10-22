@@ -16,7 +16,7 @@ services:
       postgres:
         condition: service_healthy
       redis:
-        condition: service_started
+        condition: service_healthy
     volumes:
       # Runtime configuration is mounted separately so secrets are not baked into the image.
       - ./config.json:/usr/src/app/dist/config.json:ro
